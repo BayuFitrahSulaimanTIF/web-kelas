@@ -19,7 +19,7 @@
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), window.APP_CONFIG.TIMEOUT_MS);
 
-    const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+    const headers = Object.assign({ 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' }, opts.headers || {});
     // Token sesi (sessionStorage) disuntik otomatis untuk endpoint
     // yang butuh autentikasi (mis. /auth/me), kecuali sudah diatur.
     if (!headers.Authorization) {

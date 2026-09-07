@@ -219,10 +219,11 @@
           online = false;
         } else {
           try {
-            const r = await fetch(getApiBase() + '/health', { cache: 'no-store' });
-            const data = await r.json();
+            const r = await fetch(getApiBase() + '/health', { cache: 'no-store', headers: { 'ngrok-skip-browser-warning': '1' } });
+            const text = await r.text();
+            let data; try { data = JSON.parse(text); } catch { throw new Error('health not json'); }
             log('health=' + JSON.stringify(data));
-            online = data && data.status === 'ok';
+            online = data && (data.status === 'ok' || data.status === 'degraded');
           } catch (e) {
             log('health fetch failed: ' + (e.message || e));
             online = false;
