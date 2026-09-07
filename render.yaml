@@ -1,0 +1,50 @@
+# render.yaml — Blueprint untuk https://dashboard.render.com (Free)
+# ponytail: 1 web + 1 mysql, laptop mati tetap online
+services:
+  - type: web
+    name: web-kelas
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DB_HOST
+        fromDatabase:
+          name: web-kelas-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: web-kelas-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: web-kelas-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: web-kelas-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: web-kelas-db
+          property: database
+      - key: JWT_SECRET
+        generateValue: true
+      - key: REFRESH_TOKEN_SECRET
+        generateValue: true
+      - key: PASSWORD_PEPPER
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://web-kelas.onrender.com
+      - key: FRONTEND_BASE_URL
+        value: https://web-kelas.onrender.com
+
+databases:
+  - name: web-kelas-db
+    plan: free
+    databaseName: university_class_system
+    user: webkelas

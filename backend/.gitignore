@@ -1,0 +1,9 @@
+.env
+uploads/
+*.log
+saved_library.json
+banners.json
+news.json
+.watchdog.pid
+watchdog.log
+server.log

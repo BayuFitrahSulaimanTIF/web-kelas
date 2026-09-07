@@ -1,0 +1,988 @@
+﻿/* ================================================= */
+/* CARD */
+/* ================================================= */
+
+.card,
+.modal-card,
+.loading-card {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: var(--shadow-card);
+}
+
+/* ================================================= */
+/* INPUT */
+/* ================================================= */
+
+.form-field {
+  margin-bottom: clamp(12px, 2.2vh, 26px);
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: clamp(6px, 1.1vh, 12px);
+  font-size: clamp(13px, 1.6vh, 15px);
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+
+.field-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: var(--control-height);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-fast);
+}
+
+.field-control input {
+  width: 100%;
+  height: 100%;
+  padding: 0 54px 0 58px;
+  font-size: clamp(13px, 1.7vh, 15px);
+  color: var(--color-text);
+  background: transparent;
+  outline: none;
+}
+
+.field-control input::placeholder {
+  color: #73839a;
+}
+
+.field-icon,
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--color-icon);
+  transform: translateY(-50%);
+}
+
+.field-icon {
+  left: 19px;
+}
+
+.field-icon svg,
+.password-toggle svg,
+.btn-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+.password-toggle {
+  right: 18px;
+  border-radius: var(--radius-full);
+  transition: color var(--transition-base), background-color var(--transition-base);
+}
+
+.password-toggle:hover {
+  color: var(--color-primary);
+  background-color: var(--color-primary-soft);
+}
+
+.password-toggle .icon-eye-off {
+  display: none;
+}
+
+.password-toggle.is-visible .icon-eye {
+  display: none;
+}
+
+.password-toggle.is-visible .icon-eye-off {
+  display: block;
+}
+
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
+.form-field.is-focused .field-control {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.form-field.has-error .field-control {
+  border-color: var(--color-danger);
+}
+
+.field-error {
+  display: block;
+  min-height: 16px;
+  margin-top: 5px;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--color-danger);
+}
+
+/* ================================================= */
+/* CHECKBOX */
+/* ================================================= */
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.checkbox-label input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+}
+
+/* ================================================= */
+/* BUTTON */
+/* ================================================= */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: var(--button-height);
+  padding: 0 24px;
+  border-radius: var(--radius-sm);
+  font-size: clamp(13px, 1.7vh, 15px);
+  font-weight: 600;
+  line-height: 1;
+  transition: transform var(--transition-fast), box-shadow var(--transition-base), border-color var(--transition-base), background var(--transition-base), color var(--transition-base);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-icon {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+}
+
+.btn-primary {
+  color: var(--color-white);
+  background: var(--gradient-primary);
+  box-shadow: var(--shadow-button);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #1a71f8 0%, var(--color-primary-hover) 100%);
+  box-shadow: 0 14px 26px rgba(20, 100, 236, 0.28);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  background: var(--color-primary-active);
+  transform: translateY(0) scale(0.995);
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+}
+
+.btn-secondary {
+  color: var(--color-text);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+/* ================================================= */
+/* ALERT */
+/* ================================================= */
+
+.login-message {
+  min-height: 18px;
+  margin-top: 10px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-align: center;
+  color: var(--color-danger);
+}
+
+.login-message.success {
+  color: var(--color-success);
+}
+
+.toast-root {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: var(--z-toast);
+  display: grid;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.toast {
+  min-width: 280px;
+  max-width: 380px;
+  padding: 14px 18px;
+  color: var(--color-text);
+  background: var(--color-white);
+  border: 1px solid var(--color-border-soft);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.toast.error {
+  border-left-color: var(--color-danger);
+}
+
+.toast.success {
+  border-left-color: var(--color-success);
+}
+
+/* ================================================= */
+/* MODAL */
+/* ================================================= */
+
+.modal-backdrop,
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.34);
+  backdrop-filter: blur(8px);
+}
+
+.loading-overlay {
+  z-index: var(--z-loading);
+}
+
+.modal-backdrop[hidden],
+.loading-overlay[hidden] {
+  display: none;
+}
+
+.modal-card,
+.loading-card {
+  width: min(92vw, 420px);
+  padding: 28px;
+  border-radius: var(--radius-lg);
+}
+
+.modal-card h2 {
+  margin-bottom: 10px;
+  font-size: 22px;
+}
+
+.modal-card p {
+  margin-bottom: 22px;
+  color: var(--color-muted);
+}
+
+.loading-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--color-muted-dark);
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(255, 255, 255, 0.45);
+  border-top-color: currentColor;
+  border-radius: var(--radius-full);
+  animation: spin 0.75s linear infinite;
+}
+
+/* ================================================= */
+/* FORGOT PASSWORD MODAL */
+/* ================================================= */
+
+.forgot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(20, 30, 48, 0.55);
+  backdrop-filter: blur(5px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 250ms ease-out, visibility 0s linear 250ms;
+}
+
+.forgot-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 250ms ease-out, visibility 0s linear 0s;
+}
+
+.forgot-overlay.is-closing {
+  opacity: 0;
+  transition: opacity 180ms ease-out, visibility 0s linear 180ms;
+}
+
+.forgot-overlay[hidden] {
+  display: none;
+}
+
+.forgot-card {
+  display: flex;
+  flex-direction: column;
+  width: min(460px, calc(100vw - 40px));
+  height: auto;
+  max-height: calc(100dvh - 40px);
+  padding: 24px 32px 26px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #ececec;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  font-family: var(--font-family-poppins);
+  transform: scale(0.95);
+  opacity: 0;
+  transition: transform 250ms ease-out, opacity 250ms ease-out;
+}
+
+.forgot-overlay.is-open .forgot-card {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.forgot-overlay.is-closing .forgot-card {
+  transform: scale(0.95);
+  opacity: 0;
+  transition: transform 180ms ease-out, opacity 180ms ease-out;
+}
+
+.forgot-card::-webkit-scrollbar {
+  width: 8px;
+}
+
+.forgot-card::-webkit-scrollbar-thumb {
+  background: #d9e2ec;
+  border-radius: 8px;
+}
+
+/* ================================================= */
+/* FORGOT PASSWORD MODAL - HEADER */
+/* ================================================= */
+
+.forgot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  margin-bottom: 12px;
+}
+
+.forgot-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: #1f2937;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.forgot-icon-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.forgot-icon-btn:hover {
+  background: #f3f4f6;
+}
+
+.forgot-icon-btn:active {
+  background: #e5e7eb;
+}
+
+/* ================================================= */
+/* FORGOT PASSWORD MODAL - TITLE */
+/* ================================================= */
+
+.forgot-title {
+  margin-bottom: 6px;
+  font-family: var(--font-family-poppins);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  text-align: center;
+  color: #1e293b;
+}
+
+.forgot-subtitle {
+  max-width: 340px;
+  margin: 0 auto;
+  font-family: var(--font-family-poppins);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  text-align: center;
+  color: #64748b;
+}
+
+/* ================================================= */
+/* FORGOT PASSWORD MODAL - FORM */
+/* ================================================= */
+
+.forgot-form {
+  display: flex;
+  flex-direction: column;
+  margin-top: 18px;
+}
+
+/* Atribut hidden harus mengalahkan display:flex di atas,
+   dipakai form langkah register (email -> profil -> password) */
+.forgot-form[hidden] {
+  display: none;
+}
+
+.forgot-field {
+  margin-bottom: 0;
+}
+
+.forgot-field label {
+  margin-bottom: 6px;
+  font-family: var(--font-family-poppins);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #1f2937;
+}
+
+.forgot-control {
+  height: 42px;
+  border: 1px solid #d9e2ec;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.forgot-control .field-icon {
+  left: 14px;
+  width: 16px;
+  height: 16px;
+  color: #64748b;
+}
+
+.forgot-control .field-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.forgot-control input {
+  padding: 0 14px 0 42px;
+  font-family: var(--font-family-poppins);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.forgot-control input::placeholder {
+  color: #94a3b8;
+}
+
+.forgot-field.is-focused .forgot-control {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.forgot-field.has-error .forgot-control {
+  border-color: var(--color-danger);
+}
+
+/* ================================================= */
+/* FORGOT PASSWORD MODAL - ILLUSTRATION */
+/* ================================================= */
+
+.forgot-illustration {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  margin: 18px auto 14px;
+}
+
+.forgot-illustration svg {
+  width: 88px;
+  height: 88px;
+}
+
+/* ================================================= */
+/* FORGOT PASSWORD MODAL - SUBMIT */
+/* ================================================= */
+
+.forgot-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 44px;
+  padding: 0 24px;
+  color: #ffffff;
+  background: linear-gradient(90deg, #2f80ed 0%, #2563eb 100%);
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-family-poppins);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-base);
+}
+
+.forgot-submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
+}
+
+.forgot-submit:active {
+  transform: translateY(0) scale(0.99);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+}
+
+.forgot-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+}
+
+/* ================================================= */
+/* FORGOT PASSWORD MODAL - DIVIDER */
+/* ================================================= */
+
+.forgot-divider {
+  margin: 18px 0 14px;
+  color: #6b7280;
+}
+
+.forgot-divider span {
+  background: #e5e7eb;
+}
+
+/* ================================================= */
+/* FORGOT PASSWORD MODAL - BACK LOGIN */
+/* ================================================= */
+
+.forgot-backlogin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 42px;
+  padding: 0 24px;
+  color: #334155;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font-family: var(--font-family-poppins);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.forgot-backlogin:hover {
+  background: #f8fafc;
+}
+
+.forgot-backlogin:active {
+  transform: scale(0.99);
+}
+
+.forgot-submit .btn-icon svg,
+.forgot-backlogin .btn-icon svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ================================================= */
+/* RESET PASSWORD MODAL - ACCOUNT CHIP & MESSAGE */
+/* ================================================= */
+
+.forgot-account {
+  padding: 8px 14px;
+  margin: 16px 0;
+  background: #f1f5fb;
+  border: 1px dashed #c3d4ea;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  color: #475569;
+  word-break: break-all;
+}
+
+.forgot-account span {
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+.reset-card .forgot-form {
+  margin-top: 0;
+}
+
+.reset-card .forgot-field + .forgot-field {
+  margin-top: 16px;
+}
+
+.reset-card .forgot-submit {
+  margin-top: 18px;
+}
+
+.forgot-message {
+  min-height: 18px;
+  margin-top: 12px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--color-danger);
+}
+
+.forgot-message.success {
+  color: var(--color-success);
+}
+
+/* ================================================= */
+/* REGISTER MODAL - CARD & STEPS */
+/* ================================================= */
+
+.register-card {
+  width: min(560px, calc(100vw - 40px));
+}
+
+.register-card .forgot-form {
+  margin-top: 14px;
+}
+
+.register-card .forgot-field + .forgot-field {
+  margin-top: 16px;
+}
+
+/* Nama depan & belakang berdampingan (2 kolom) pada tahap username */
+.register-name-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.register-name-row .forgot-field + .forgot-field {
+  margin-top: 0;
+}
+
+@media (max-width: 420px) {
+  .register-name-row {
+    grid-template-columns: 1fr;
+  }
+
+  .register-name-row .forgot-field + .forgot-field {
+    margin-top: 16px;
+  }
+}
+
+.register-card .forgot-submit {
+  margin-top: 18px;
+}
+
+.register-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.register-step-dot {
+  width: 8px;
+  height: 8px;
+  background: #d9e2ec;
+  border-radius: 50%;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.register-step-dot.is-active {
+  background: #2563eb;
+  transform: scale(1.15);
+}
+
+/* ================================================= */
+/* REGISTER MODAL - GENDER */
+/* ================================================= */
+
+.gender-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.gender-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 128px;
+  padding: 18px 20px;
+  font-family: var(--font-family-poppins);
+  background: #ffffff;
+  border: 1.5px solid #d1d5db;
+  border-radius: 14px;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.gender-card:hover {
+  border-color: #93c5fd;
+  background: #f8faff;
+  transform: translateY(-1px);
+}
+
+.gender-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+}
+
+.gender-card.is-active {
+  background: #eff6ff;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.gender-symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 10px;
+  border-radius: 50%;
+  font-family: Arial, sans-serif;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.male-symbol {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.female-symbol {
+  color: #db2777;
+  background: rgba(219, 39, 119, 0.1);
+}
+
+.gender-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.gender-card.is-active .gender-name {
+  color: #111827;
+}
+
+.gender-radio {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  font-size: 16px;
+  line-height: 1;
+  color: #9ca3af;
+}
+
+.gender-radio::after {
+  content: '○';
+}
+
+.gender-card.is-active .gender-radio {
+  color: #2563eb;
+}
+
+.gender-card.is-active .gender-radio::after {
+  content: '●';
+}
+
+.forgot-field.has-error .gender-card {
+  border-color: var(--color-danger);
+}
+
+.forgot-field.has-error .gender-card:hover {
+  border-color: var(--color-danger);
+}
+
+/* ================================================= */
+/* REGISTER MODAL - DIVIDER */
+/* ================================================= */
+
+.register-divider {
+  margin: 16px 0 12px;
+}
+
+/* ================================================= */
+/* DATE PICKER - PANEL KALENDER */
+/* ================================================= */
+
+/* Kontrol yang memuat datepicker harus melukis di atas konten
+   yang datang setelahnya (mis. pilihan gender). animation.css
+   memberi .field-control will-change: transform yang membuatnya
+   menjadi stacking context; tanpa z-index positif di sini, panel
+   yang memanjang ke bawah tidak bisa berada di depan elemen
+   berikutnya di dalam kartu. */
+.field-control.has-datepicker {
+  z-index: 1;
+}
+
+.datepicker-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: var(--z-datepicker);
+  width: 280px;
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid #ececec;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+  font-family: var(--font-family-poppins);
+}
+
+.datepicker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.datepicker-nav {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #1f2937;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.datepicker-nav:hover {
+  background: #f3f4f6;
+}
+
+.datepicker-nav:active {
+  background: #e5e7eb;
+}
+
+.datepicker-nav svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.datepicker-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.datepicker-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+
+.datepicker-weekdays span {
+  padding: 4px 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.datepicker-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.datepicker-day {
+  display: grid;
+  place-items: center;
+  height: 32px;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  color: #334155;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.datepicker-day:hover:not(:disabled) {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.datepicker-day:disabled {
+  cursor: default;
+  visibility: hidden;
+}
+
+.datepicker-day.is-today {
+  box-shadow: inset 0 0 0 1px #2563eb;
+}
+
+.datepicker-day.is-selected {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+}

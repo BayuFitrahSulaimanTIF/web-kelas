@@ -1,0 +1,93 @@
+﻿/* ================================================= */
+/* RESPONSIVE */
+/* Panel kanan (form) terkunci: tanpa scroll vertikal,
+   horizontal, maupun diagonal — konten menyesuaikan
+   dengan mengkompaksi spasi pada layar pendek. */
+/* ================================================= */
+
+@media (max-width: 640px) {
+  :root {
+    --shell-padding: 10px;
+    --hero-left: 28px;
+    --hero-top: 28px;
+    --hero-copy-top: 142px;
+    --hero-logo-size: 84px;
+    --login-card-width: 100%;
+  }
+}
+
+/* ================================================= */
+/* FORGOT PASSWORD MODAL - MOBILE */
+/* ================================================= */
+
+@media (max-width: 480px) {
+  .forgot-overlay {
+    padding: 12px;
+  }
+
+  .forgot-card {
+    padding: 18px 20px;
+    border-radius: 16px;
+  }
+
+  .forgot-title {
+    font-size: 22px;
+  }
+
+  .forgot-subtitle {
+    font-size: 12px;
+    line-height: 19px;
+  }
+
+  .forgot-illustration {
+    margin-top: 14px;
+    margin-bottom: 12px;
+  }
+
+  .forgot-illustration svg {
+    width: 76px;
+    height: 76px;
+  }
+}
+
+@media (max-height: 700px) {
+  .forgot-card {
+    padding: 18px 32px 20px;
+  }
+}
+
+/* ================================================= */
+/* LAYAR PENDEK - KOMPAKSI FORM (tetap tanpa scroll) */
+/* ================================================= */
+
+@media (max-height: 760px) {
+  .auth-panel {
+    min-height: auto;
+  }
+
+  .login-card {
+    min-height: auto;
+    padding-top: 14px;
+    padding-bottom: 18px;
+  }
+
+  .login-heading {
+    margin-bottom: 14px;
+  }
+
+  .login-heading h2 {
+    margin-bottom: 4px;
+  }
+
+  .form-extra {
+    margin-bottom: 10px;
+  }
+
+  .divider {
+    margin: 10px 0 8px;
+  }
+
+  .login-footer {
+    margin-top: 10px;
+  }
+}

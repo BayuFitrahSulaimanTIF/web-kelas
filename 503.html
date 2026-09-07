@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Login SSO sedang dalam perbaikan — 503 Service Unavailable">
+  <title>503 Service Unavailable</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
+        "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      color: #16233e;
+    }
+
+    .maintenance {
+      height: 100vh;
+      height: 100dvh;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(20px, 4vw, 56px);
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .maintenance svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
+        "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .maintenance-illustration {
+      /* Batas tinggi juga: lebar = tinggi * (1504/1046) agar seluruh
+         halaman (ilustrasi + teks) selalu muat di dalam viewport. */
+      width: min(720px, 72vw, calc(48vh * 1.437));
+      max-width: 720px;
+      height: auto;
+      margin-bottom: clamp(28px, 3vw, 40px);
+    }
+
+    .maintenance-illustration img {
+      display: block;
+      width: 100%;
+      height: auto;
+      -webkit-user-drag: none;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .maintenance-title {
+      font-size: clamp(28px, 3vw, 46px);
+      font-weight: 700;
+      line-height: 1.2;
+      color: #16233e;
+      margin-bottom: clamp(12px, 1.4vw, 18px);
+    }
+
+    .maintenance-desc {
+      font-size: clamp(16px, 1.35vw, 21px);
+      font-weight: 400;
+      line-height: 1.7;
+      color: #5a6b87;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+
+    .maintenance-extra {
+      font-size: clamp(16px, 1.3vw, 20px);
+      font-weight: 500;
+      line-height: 1.5;
+      color: #2c3e5e;
+      margin-top: clamp(24px, 2.6vw, 34px);
+    }
+
+    .maintenance-closing {
+      font-size: clamp(14px, 1.15vw, 18px);
+      font-weight: 400;
+      line-height: 1.5;
+      color: #8b99b3;
+      margin-top: clamp(28px, 3vw, 40px);
+    }
+
+    @media (max-width: 767px) {
+      .maintenance-illustration {
+        width: min(90vw, 500px, calc(48vh * 1.437));
+      }
+    }
+
+    @media (max-height: 780px) {
+      .maintenance-illustration {
+        width: min(720px, 72vw, calc(42vh * 1.437));
+        margin-bottom: clamp(18px, 2vw, 26px);
+      }
+      .maintenance-title {
+        font-size: clamp(24px, 2.4vw, 36px);
+        margin-bottom: clamp(10px, 1.2vw, 14px);
+      }
+      .maintenance-desc {
+        font-size: clamp(14px, 1.2vw, 19px);
+      }
+      .maintenance-extra {
+        font-size: clamp(14px, 1.15vw, 18px);
+        margin-top: clamp(16px, 2vw, 22px);
+      }
+      .maintenance-closing {
+        font-size: clamp(13px, 1vw, 16px);
+        margin-top: clamp(18px, 2.2vw, 24px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="maintenance">
+    <!-- ================= ILUSTRASI MAINTENANCE ================= -->
+    <div class="maintenance-illustration" aria-hidden="true">
+      <img src="assets/images/503-maintenance.png" alt="Ilustrasi maintenance website">
+    </div>
+
+    <h1 class="maintenance-title">Login SSO Sedang Dalam Perbaikan</h1>
+    <p class="maintenance-desc">Kami sedang melakukan pemeliharaan untuk meningkatkan kinerja dan pengalaman Anda.</p>
+    <p class="maintenance-extra">Silakan kembali beberapa saat lagi.</p>
+    <p class="maintenance-closing">Terima kasih atas kesabaran dan pengertian Anda.</p>
+  </main>
+
+  <script>
+    // Kunci halaman: cegah scroll roda/touch dan gesture yang menggeser halaman.
+    ['wheel', 'touchmove', 'gesturestart'].forEach(function (type) {
+      document.addEventListener(type, function (e) { e.preventDefault(); }, { passive: false });
+    });
+    document.addEventListener('keydown', function (e) {
+      if ([32, 33, 34, 35, 36, 37, 38, 39, 40].indexOf(e.keyCode) !== -1) e.preventDefault();
+    });
+  </script>
+</body>
+</html>

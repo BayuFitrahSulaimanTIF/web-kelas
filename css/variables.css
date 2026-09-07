@@ -1,0 +1,151 @@
+﻿/* ================================================= */
+/* FONT */
+/* ================================================= */
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../assets/fonts/Inter-Variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../assets/fonts/Inter-Variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/poppins-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../assets/fonts/poppins-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/poppins-700.woff2') format('woff2');
+}
+
+/* ================================================= */
+/* COLOR VARIABLES */
+/* ================================================= */
+
+:root {
+  --color-primary: #1464ec;
+  --color-primary-hover: #0f58dc;
+  --color-primary-active: #0b4fc9;
+  --color-primary-soft: rgba(20, 100, 236, 0.12);
+
+  --color-white: #ffffff;
+  --color-page: #f6f8fb;
+  --color-panel: #fbfcfe;
+  --color-text: #111827;
+  --color-muted: #66758a;
+  --color-muted-dark: #475569;
+  --color-border: #d7e0ec;
+  --color-border-soft: #e6ebf2;
+  --color-icon: #5f6f86;
+  --color-danger: #dc2626;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-overlay-blue: rgba(24, 84, 157, 0.58);
+  --color-overlay-blue-dark: rgba(13, 57, 111, 0.2);
+
+  --gradient-primary: linear-gradient(135deg, #176df3 0%, #0f5ee7 100%);
+  --gradient-hero: linear-gradient(180deg, rgba(31, 91, 170, 0.62) 0%, rgba(31, 91, 170, 0.28) 44%, rgba(16, 71, 129, 0.1) 100%);
+
+  --font-family-base: Inter, "Segoe UI", Arial, sans-serif;
+  --font-family-heading: Inter, "Segoe UI", Arial, sans-serif;
+  --font-family-poppins: Poppins, "Segoe UI", Arial, sans-serif;
+
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-md: 18px;
+  --font-size-lg: 28px;
+  --font-size-xl: 40px;
+  --font-size-2xl: 52px;
+
+  /* ================================================= */
+  /* BORDER RADIUS */
+  /* ================================================= */
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 18px;
+  --radius-full: 999px;
+
+  /* ================================================= */
+  /* SHADOW */
+  /* ================================================= */
+
+  --shadow-shell: 0 18px 48px rgba(15, 23, 42, 0.08);
+  --shadow-card: 0 20px 42px rgba(15, 23, 42, 0.1);
+  --shadow-button: 0 10px 22px rgba(20, 100, 236, 0.23);
+  --shadow-focus: 0 0 0 4px rgba(20, 100, 236, 0.12);
+
+  /* ================================================= */
+  /* SPACING */
+  /* ================================================= */
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 56px;
+  --space-11: 64px;
+  --space-12: 80px;
+
+  /* ================================================= */
+  /* LAYOUT SIZE */
+  /* ================================================= */
+
+  --shell-padding: 16px;
+  --hero-width: 50%;
+  --auth-width: 50%;
+  --hero-logo-size: 180px;
+  --hero-left: 48px;
+  --hero-top: 52px;
+  --hero-copy-top: 262px;
+  --login-card-width: 560px;
+  --login-card-padding-x: clamp(28px, 3vw, 58px);
+  --login-card-padding-y: clamp(16px, 3vh, 46px);
+  --login-card-padding-bottom: clamp(20px, 3.5vh, 44px);
+  --control-height: clamp(40px, 5.2vh, 60px);
+  --button-height: clamp(40px, 5.2vh, 60px);
+
+  /* ================================================= */
+  /* TRANSITION */
+  /* ================================================= */
+
+  --transition-fast: 160ms ease;
+  --transition-base: 260ms ease;
+  --transition-slow: 420ms ease;
+
+  --z-toast: 50;
+  --z-loading: 80;
+  --z-modal: 90;
+  --z-datepicker: 1000;
+}

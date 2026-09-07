@@ -1,0 +1,99 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memproses Login SSO - Sistem Mata Kuliah Perguruan Tinggi</title>
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/variables.css">
+  <style>
+    body {
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      background: var(--color-page);
+      font-family: var(--font-family-base);
+    }
+
+    .sso-processing {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      padding: 40px;
+      background: var(--color-white);
+      border: 1px solid var(--color-border-soft);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      text-align: center;
+    }
+
+    .sso-spinner {
+      width: 34px;
+      height: 34px;
+      border: 3px solid rgba(20, 100, 236, 0.18);
+      border-top-color: var(--color-primary);
+      border-radius: var(--radius-full);
+      animation: spin 0.75s linear infinite;
+    }
+
+    .sso-processing p {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--color-muted-dark);
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="sso-processing" role="status" aria-live="polite">
+    <span class="sso-spinner" aria-hidden="true"></span>
+    <p>Login SSO berhasil, mengalihkan...</p>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var token = params.get('token');
+
+      if (!token) {
+        window.location.replace('index.html');
+        return;
+      }
+
+      // Bersihkan token dari URL (riwayat browser, log server, referrer)
+      try {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (error) { /* abaikan */ }
+
+      sessionStorage.setItem(APP_CONFIG.STORAGE_KEYS.token, token);
+
+      var apiBase = APP_CONFIG.API_BASE_URL;
+
+      fetch(apiBase + '/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
+        .then(function (r) {
+          if (!r.ok) throw new Error('unauthorized');
+          return r.json();
+        })
+        .then(function (data) {
+          if (data.user) {
+            sessionStorage.setItem(APP_CONFIG.STORAGE_KEYS.user, JSON.stringify(data.user));
+          }
+          window.setTimeout(function () {
+            window.location.replace(APP_CONFIG.ROUTES.dashboard);
+          }, 600);
+        })
+        .catch(function () {
+          sessionStorage.removeItem(APP_CONFIG.STORAGE_KEYS.token);
+          window.location.replace('index.html');
+        });
+    })();
+  </script>
+</body>
+</html>
