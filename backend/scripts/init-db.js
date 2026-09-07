@@ -29,7 +29,8 @@ async function main() {
   const statements = withoutComments
     .split(/;\s*\r?\n/)
     .map((s) => s.trim())
-    .filter((s) => s);
+    .filter((s) => s)
+    .filter((s) => !/^CREATE DATABASE/i.test(s) && !/^USE /i.test(s)); // ponytail: DB_NAME dari env (railway=railway), jangan paksa university_class_system
 
   const pool = mysql.createConnection({
     host: env.db.host,
