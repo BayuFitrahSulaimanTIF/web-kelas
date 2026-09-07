@@ -35,7 +35,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
       imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
-      connectSrc: ["'self'", "http://localhost:3000", "https://*.lhr.life", "https://*.serveousercontent.com", "https://*.devtunnels.ms", "https://*.asse.devtunnels.ms", "https://*.ngrok-free.dev", "https://*.ngrok-free.app", "https://1.1.1.1", "https://connectivitycheck.gstatic.com", "https://www.google.com"],
+      connectSrc: ["'self'", "http://localhost:3000", "https://*.lhr.life", "https://*.serveousercontent.com", "https://*.devtunnels.ms", "https://*.asse.devtunnels.ms", "https://*.ngrok-free.dev", "https://*.ngrok-free.app", "https://*.onrender.com", "https://*.up.railway.app", "https://1.1.1.1", "https://connectivitycheck.gstatic.com", "https://www.google.com"],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
       baseUri: ["'self'"],

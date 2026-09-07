@@ -1,5 +1,5 @@
 # render.yaml — Blueprint untuk https://dashboard.render.com (Free)
-# ponytail: 1 web + 1 mysql, laptop mati tetap online
+# ponytail: 24 jam online — DB MySQL external (Render free hanya Postgres), pakai Railway/Aiven untuk MySQL
 services:
   - type: web
     name: web-kelas
@@ -13,25 +13,15 @@ services:
       - key: PORT
         value: 10000
       - key: DB_HOST
-        fromDatabase:
-          name: web-kelas-db
-          property: host
+        sync: false
       - key: DB_PORT
-        fromDatabase:
-          name: web-kelas-db
-          property: port
+        sync: false
       - key: DB_USER
-        fromDatabase:
-          name: web-kelas-db
-          property: user
+        sync: false
       - key: DB_PASSWORD
-        fromDatabase:
-          name: web-kelas-db
-          property: password
+        sync: false
       - key: DB_NAME
-        fromDatabase:
-          name: web-kelas-db
-          property: database
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: REFRESH_TOKEN_SECRET
@@ -39,12 +29,6 @@ services:
       - key: PASSWORD_PEPPER
         generateValue: true
       - key: CORS_ORIGIN
-        value: https://web-kelas.onrender.com
+        value: https://*.onrender.com,https://*.up.railway.app,http://localhost:3000
       - key: FRONTEND_BASE_URL
-        value: https://web-kelas.onrender.com
-
-databases:
-  - name: web-kelas-db
-    plan: free
-    databaseName: university_class_system
-    user: webkelas
+        sync: false
