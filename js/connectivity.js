@@ -106,7 +106,7 @@
     }
     const avg = times.reduce((a,b)=>a+b,0)/times.length;
     const range = Math.max(...times) - Math.min(...times);
-    const ok = avg < 1200 && range < 600;
+    const ok = avg < 3000 && range < 1500;
     log('stability avg=' + avg.toFixed(0) + 'ms range=' + range.toFixed(0) + ' ok=' + ok);
     return ok;
   }
@@ -212,9 +212,9 @@
         online = false;
         log('internetOk=false');
       } else {
-        // ponytail: ukur stabilitas sebelum anggap online (threshold avg<1.2s range<600ms)
+        // ponytail: skip stability check saat user spam refresh — langsung cek health (stability hanya untuk polling diam)
         let stable = true;
-        if (_wasOffline) { stable = await isConnectionStable(); if (!stable) log('unstable → tetap offline'); }
+        // if (_wasOffline) { stable = await isConnectionStable(); if (!stable) log('unstable → tetap offline'); }
         if (!stable) {
           online = false;
         } else {

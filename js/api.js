@@ -65,6 +65,8 @@
       const apiError = new Error(data.message || data.error || 'Terjadi kesalahan pada server');
       apiError.api = true;
       apiError.status = response.status;
+      apiError.errors = data.errors || data.details || null;
+      apiError.data = data;
       throw apiError;
     }
 

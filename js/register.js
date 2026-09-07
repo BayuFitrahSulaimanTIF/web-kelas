@@ -461,7 +461,8 @@
           birth_date: state.data.birth_date,
           gender: state.data.gender,
           role: state.data.role || 'student',
-          managed_course: state.data.managed_course || ''
+          managed_course: state.data.managed_course || '',
+          password: passwordValue
         })
       });
 
@@ -470,6 +471,31 @@
     } catch (error) {
       if (error.network) {
         window.Connectivity.retryNow();
+      }
+      // tampilkan detail validasi per field, bukan cuma "Validasi gagal"
+      if (error.status === 422 && error.errors) {
+        const e = error.errors;
+        if (e.username) UI.showFieldError(state.elements.username, e.username);
+        if (e.first_name) UI.showFieldError(state.elements.firstName, e.first_name);
+        if (e.last_name) UI.showFieldError(state.elements.lastName, e.last_name);
+        if (e.email) UI.showFieldError(state.elements.email, e.email);
+        if (e.birth_date) UI.showFieldError(state.elements.birthDate, e.birth_date);
+        if (e.gender) UI.showFieldError(state.elements.genderButtons[0], e.gender);
+        if (e.role) UI.showFieldError(state.elements.roleButtons[0], e.role);
+        if (e.managed_course) UI.showFieldError(state.elements.managedCourse, e.managed_course);
+        if (e.password) UI.showFieldError(state.elements.password, e.password);
+        const firstMsg = Object.values(e)[0];
+        UI.showToast(firstMsg || error.message || 'Validasi gagal', 'error');
+        Animation.shake(state.elements.card);
+        return;
+      }
+      if (error.status === 409) {
+        UI.showToast(error.message, 'error');
+        // arahkan ke field yang conflict
+        if (/Username/i.test(error.message) && state.elements.username) UI.showFieldError(state.elements.username, error.message);
+        if (/Email/i.test(error.message) && state.elements.email) UI.showFieldError(state.elements.email, error.message);
+        Animation.shake(state.elements.card);
+        return;
       }
       UI.showToast(error.message || 'Gagal membuat akun', 'error');
       Animation.shake(state.elements.card);
