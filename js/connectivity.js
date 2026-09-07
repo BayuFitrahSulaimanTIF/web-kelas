@@ -53,12 +53,6 @@
       }
       // set type cocok dengan output canvas (PNG) agar browser terima spinner
       link.type = 'image/png';
-      let dots = 0;
-      if (titleInterval) clearInterval(titleInterval);
-      titleInterval = setInterval(() => {
-        dots = (dots + 1) % 4;
-        document.title = 'Loading' + '.'.repeat(dots) + (dots ? ' ' : ' ') + originalTitle;
-      }, 380);
       const c = document.createElement('canvas'); c.width = 16; c.height = 16;
       const ctx = c.getContext('2d');
       let angle = 0;
