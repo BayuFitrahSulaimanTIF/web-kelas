@@ -40,6 +40,7 @@ function sanitizeUser(user) {
     email: user.email,
     full_name: user.full_name,
     role: user.role,
+    managed_course: user.managed_course || null,
     status: user.is_active ? 'active' : 'inactive',
     last_login_at: user.last_login_at || null,
     birth_date: user.birth_date || null,
@@ -153,6 +154,8 @@ exports.register = asyncHandler(async (req, res) => {
   const username = String(req.body.username || '').trim();
   const firstName = String(req.body.first_name || '').trim();
   const lastName = String(req.body.last_name || '').trim();
+  const role = String(req.body.role || 'student').trim().toLowerCase();
+  const managedCourse = String(req.body.managed_course || '').trim().toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
 
   const existingEmail = await User.findByEmail(email);
   if (existingEmail) {
@@ -180,7 +183,8 @@ exports.register = asyncHandler(async (req, res) => {
     full_name: `${firstName} ${lastName}`.trim(),
     passwordHash,
     accountToken,
-    role: 'student',
+    role: ['admin','student','mahasiswa','dosen'].includes(role) ? role : 'student',
+    managed_course: role === 'admin' ? managedCourse : null,
     birth_date: birthDateDb,
     gender
   });

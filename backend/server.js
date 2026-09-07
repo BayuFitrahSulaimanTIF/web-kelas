@@ -58,7 +58,7 @@ validateEnv();
       const conn = mysql.createConnection({ host: env.db.host, port: env.db.port, user: env.db.user, password: env.db.password, database: env.db.name });
       const p = conn.promise();
       for (const st of stmts) { try { await p.query(st); } catch(e){ if(!/already exists/i.test(e.message)) throw e; } }
-      // migrasi kolom tambahan (bio/avatar/nim) + backfill — idempoten
+      // migrasi kolom tambahan (bio/avatar/nim/managed_course) + backfill — idempoten
       try {
         const [c]=await p.query("SELECT COUNT(*) n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='bio'");
         if(c[0].n===0) await p.query("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT NULL");
@@ -66,6 +66,8 @@ validateEnv();
         if(a[0].n===0) await p.query("ALTER TABLE users ADD COLUMN avatar VARCHAR(255) DEFAULT NULL");
         const [n]=await p.query("SELECT COUNT(*) n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='nim'");
         if(n[0].n===0) await p.query("ALTER TABLE users ADD COLUMN nim VARCHAR(20) DEFAULT NULL AFTER full_name");
+        const [mc]=await p.query("SELECT COUNT(*) n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='managed_course'");
+        if(mc[0].n===0) await p.query("ALTER TABLE users ADD COLUMN managed_course VARCHAR(60) DEFAULT NULL AFTER role");
         await p.query("UPDATE users SET nim='230101001' WHERE username='student1' AND nim IS NULL");
         await p.query("UPDATE users SET nim='230101002' WHERE username='student2' AND nim IS NULL");
         await p.query("UPDATE users SET nim='230101003' WHERE username='student3' AND nim IS NULL");

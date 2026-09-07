@@ -13,7 +13,7 @@
 
 const { db } = require('../config/database');
 
-const USER_COLUMNS = 'id, username, email, full_name, role, is_active, failed_login_attempts, locked_until, last_login_at, birth_date, gender, bio, avatar, created_at, updated_at';
+const USER_COLUMNS = 'id, username, email, full_name, role, managed_course, is_active, failed_login_attempts, locked_until, last_login_at, birth_date, gender, bio, avatar, created_at, updated_at';
 // Kolom keamanan hanya diambil di jalur yang membutuhkannya
 const AUTH_COLUMNS = `${USER_COLUMNS}, password_hash`;
 
@@ -50,10 +50,10 @@ const User = {
     return rows[0] || null;
   },
 
-  async create({ username, email, passwordHash, accountToken, full_name, role, birth_date, gender }) {
+  async create({ username, email, passwordHash, accountToken, full_name, role, managed_course, birth_date, gender }) {
     const [result] = await db.execute(
-      'INSERT INTO users (username, email, password_hash, account_token, role, full_name, birth_date, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [username, email, passwordHash, accountToken, role || 'student', full_name || null, birth_date || null, gender || null]
+      'INSERT INTO users (username, email, password_hash, account_token, role, managed_course, full_name, birth_date, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [username, email, passwordHash, accountToken, role || 'student', managed_course || null, full_name || null, birth_date || null, gender || null]
     );
     return result.insertId;
   },

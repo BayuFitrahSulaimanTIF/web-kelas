@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS users (
   account_token CHAR(15) NOT NULL UNIQUE,
   full_name VARCHAR(100) DEFAULT NULL,
   role ENUM('admin', 'dosen', 'mahasiswa', 'student') NOT NULL DEFAULT 'student',
+  managed_course VARCHAR(60) DEFAULT NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   failed_login_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
   locked_until DATETIME DEFAULT NULL,

@@ -7,6 +7,18 @@ const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,50}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_PATTERN = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*()]).{8,128}$/;
 const ALLOWED_ROLES = ['admin', 'dosen', 'mahasiswa', 'student'];
+// ponytail: mata kuliah penanggung jawab admin — slug kecil, sinkron dengan frontend register.js
+const ALLOWED_COURSES = [
+  'jaringan_komputer',
+  'basis_data',
+  'pemrograman_web',
+  'sistem_operasi',
+  'algoritma_dan_pemrograman',
+  'kecerdasan_buatan',
+  'struktur_data',
+  'rekayasa_perangkat_lunak',
+  'pemrograman_dasar'
+];
 
 const normalize = (value) => String(value || '').trim();
 const normalizeEmail = (value) => normalize(value).toLowerCase();
@@ -33,6 +45,8 @@ function validateRegister(payload) {
   const password = String(payload.password || '');
   const birthDate = normalize(payload.birth_date);
   const gender = normalize(payload.gender);
+  const role = normalize(payload.role || 'student').toLowerCase();
+  const managedCourse = normalize(payload.managed_course || '').toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
 
   if (!username) {
     errors.username = 'Username wajib diisi';
@@ -88,6 +102,13 @@ function validateRegister(payload) {
     errors.password = 'Kata sandi wajib diisi';
   } else if (!PASSWORD_PATTERN.test(password)) {
     errors.password = 'Kata sandi minimal 8 karakter dengan huruf besar, huruf kecil, angka, dan simbol !@#$%^&*()';
+  }
+
+  if (!ALLOWED_ROLES.includes(role)) {
+    errors.role = 'Role tidak valid';
+  } else if (role === 'admin') {
+    if (!managedCourse) errors.managed_course = 'Pilih mata kuliah penanggung jawab';
+    else if (!ALLOWED_COURSES.includes(managedCourse)) errors.managed_course = 'Mata kuliah tidak valid';
   }
 
   return errors;

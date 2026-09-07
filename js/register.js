@@ -3,11 +3,12 @@
 
   // ===================================================
   // REGISTER (DAFTAR AKUN)
-  // Alur 4 langkah: username+nama -> email -> tanggal lahir+gender -> kata sandi
+  // Alur 5 langkah: username+nama -> email -> tanggal lahir+gender -> role+matkul -> kata sandi
+  // - Role: student/admin; admin wajib pilih matkul penanggung jawab
   // - Kata sandi: min 8, huruf besar/kecil/angka/simbol !@#$%^&*()
   // - Konfirmasi harus sama, jika tidak -> "kata sandi tidak sama"
   // - Username dicek ketersediaannya di tahap 1
-  // - Sukses: tutup modal, akun tersimpan (role student)
+  // - Sukses: tutup modal, akun tersimpan (role+course jika admin)
   // ===================================================
 
   const state = {
@@ -21,7 +22,9 @@
       last_name: '',
       email: '',
       birth_date: '',
-      gender: ''
+      gender: '',
+      role: '',
+      managed_course: ''
     },
     elements: {}
   };
@@ -60,23 +63,28 @@
       back: document.getElementById('register-back'),
       close: document.getElementById('register-close'),
       backLogin: document.getElementById('register-backlogin'),
-      steps: [1, 2, 3, 4].map((n) => document.getElementById('register-step-' + n)),
+      steps: [1, 2, 3, 4, 5].map((n) => document.getElementById('register-step-' + n)),
       formUsername: document.getElementById('register-form-username'),
       formEmail: document.getElementById('register-form-email'),
       formProfile: document.getElementById('register-form-profile'),
+      formRole: document.getElementById('register-form-role'),
       formPassword: document.getElementById('register-form-password'),
       username: document.getElementById('register-username'),
       firstName: document.getElementById('register-first-name'),
       lastName: document.getElementById('register-last-name'),
       email: document.getElementById('register-email'),
       birthDate: document.getElementById('register-birth-date'),
-      genderButtons: document.querySelectorAll('.gender-card'),
+      genderButtons: document.querySelectorAll('.gender-card[data-gender]'),
+      roleButtons: document.querySelectorAll('.gender-card[data-role]'),
+      managedCourse: document.getElementById('register-managed-course'),
+      adminCourseField: document.getElementById('admin-course-field'),
       password: document.getElementById('register-password'),
       confirmPassword: document.getElementById('register-confirm-password'),
       togglePassword: document.getElementById('register-toggle-password'),
       toggleConfirm: document.getElementById('register-toggle-confirm'),
       submit: document.getElementById('register-submit'),
       nextUsername: document.getElementById('register-next-username'),
+      nextRole: document.getElementById('register-next-role'),
       message: document.getElementById('register-message')
     };
   }
@@ -88,12 +96,13 @@
   function showStep(step) {
     state.step = step;
 
-    const { formUsername, formEmail, formProfile, formPassword } = state.elements;
+    const { formUsername, formEmail, formProfile, formRole, formPassword } = state.elements;
 
     formUsername.hidden = step !== 1;
     formEmail.hidden = step !== 2;
     formProfile.hidden = step !== 3;
-    formPassword.hidden = step !== 4;
+    if (formRole) formRole.hidden = step !== 4;
+    formPassword.hidden = step !== 5;
 
     state.elements.steps.forEach((dot, index) => {
       if (dot) dot.classList.toggle('is-active', index < step);
@@ -105,7 +114,9 @@
       state.elements.email.focus();
     } else if (step === 3 && state.elements.birthDate) {
       state.elements.birthDate.focus();
-    } else if (step === 4 && state.elements.password) {
+    } else if (step === 4 && state.elements.roleButtons && state.elements.roleButtons[0]) {
+      state.elements.roleButtons[0].focus();
+    } else if (step === 5 && state.elements.password) {
       state.elements.password.focus();
     }
   }
@@ -163,23 +174,32 @@
   }
 
   function resetForm() {
-    state.data = { username: '', first_name: '', last_name: '', email: '', birth_date: '', gender: '' };
+    state.data = { username: '', first_name: '', last_name: '', email: '', birth_date: '', gender: '', role: '', managed_course: '' };
 
     [state.elements.username, state.elements.firstName, state.elements.lastName, state.elements.email, state.elements.birthDate, state.elements.password, state.elements.confirmPassword].forEach((el) => {
       if (el) el.value = '';
     });
+    if (state.elements.managedCourse) state.elements.managedCourse.value = '';
+    if (state.elements.adminCourseField) state.elements.adminCourseField.hidden = true;
 
     state.elements.genderButtons.forEach((button) => {
       button.classList.remove('is-active');
       button.setAttribute('aria-pressed', 'false');
     });
+    if (state.elements.roleButtons) state.elements.roleButtons.forEach((button) => {
+      button.classList.remove('is-active');
+      button.setAttribute('aria-pressed', 'false');
+    });
 
-    [state.elements.formUsername, state.elements.formEmail, state.elements.formProfile, state.elements.formPassword].forEach((form) => {
+    [state.elements.formUsername, state.elements.formEmail, state.elements.formProfile, state.elements.formRole, state.elements.formPassword].forEach((form) => {
       if (form) UI.clearAllFieldErrors(form);
     });
 
     if (state.elements.genderButtons[0]) {
       UI.clearFieldError(state.elements.genderButtons[0]);
+    }
+    if (state.elements.roleButtons && state.elements.roleButtons[0]) {
+      UI.clearFieldError(state.elements.roleButtons[0]);
     }
 
     UI.setMessage(state.elements.message, '');
@@ -318,6 +338,45 @@
     showStep(4);
   }
 
+  function selectRole(button) {
+    state.data.role = button.dataset.role;
+    if (state.elements.adminCourseField) {
+      const isAdmin = state.data.role === 'admin';
+      state.elements.adminCourseField.hidden = !isAdmin;
+      if (!isAdmin && state.elements.managedCourse) state.elements.managedCourse.value = '';
+    }
+    state.elements.roleButtons.forEach((btn) => {
+      const active = btn === button;
+      btn.classList.toggle('is-active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
+    UI.clearFieldError(button);
+    if (state.elements.managedCourse) UI.clearFieldError(state.elements.managedCourse);
+  }
+
+  function submitRole(event) {
+    event.preventDefault();
+    const { formRole, roleButtons, managedCourse } = state.elements;
+    UI.clearAllFieldErrors(formRole);
+    if (!state.data.role) {
+      UI.showFieldError(roleButtons[0], 'Pilih peran');
+      Animation.shake(state.elements.card);
+      return;
+    }
+    if (state.data.role === 'admin') {
+      const val = managedCourse ? managedCourse.value.trim() : '';
+      if (!val) {
+        UI.showFieldError(managedCourse, 'Pilih mata kuliah penanggung jawab');
+        Animation.shake(state.elements.card);
+        return;
+      }
+      state.data.managed_course = val;
+    } else {
+      state.data.managed_course = '';
+    }
+    showStep(5);
+  }
+
   function selectGender(button) {
     state.data.gender = button.dataset.gender;
 
@@ -401,7 +460,8 @@
           email: state.data.email,
           birth_date: state.data.birth_date,
           gender: state.data.gender,
-          password: passwordValue
+          role: state.data.role || 'student',
+          managed_course: state.data.managed_course || ''
         })
       });
 
@@ -462,6 +522,12 @@
     state.elements.genderButtons.forEach((button) => {
       button.addEventListener('click', () => selectGender(button));
     });
+
+    if (state.elements.roleButtons) state.elements.roleButtons.forEach((button) => {
+      button.addEventListener('click', () => selectRole(button));
+    });
+    if (state.elements.formRole) state.elements.formRole.addEventListener('submit', submitRole);
+    if (state.elements.managedCourse) state.elements.managedCourse.addEventListener('change', () => UI.clearFieldError(state.elements.managedCourse));
 
     state.elements.back.addEventListener('click', () => {
       Animation.pressButton(state.elements.back);
