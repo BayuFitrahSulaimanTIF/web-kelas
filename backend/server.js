@@ -47,6 +47,35 @@ try {
 } catch {}
 validateEnv();
 
+// ponytail: auto-init DB di cloud (Railway) — tanpa perlu Console manual, init non-destruktif
+(async () => {
+  try {
+    const fs = require('fs'); const path = require('path'); const mysql = require('mysql2');
+    const schemaPath = path.resolve(__dirname, '../database/schema.sql');
+    if (fs.existsSync(schemaPath)) {
+      const sql = fs.readFileSync(schemaPath, 'utf8').replace(/^\s*--.*$/gm, '');
+      const stmts = sql.split(/;\s*\r?\n/).map(s=>s.trim()).filter(s=>s).filter(s=>!/^CREATE DATABASE/i.test(s) && !/^USE /i.test(s));
+      const conn = mysql.createConnection({ host: env.db.host, port: env.db.port, user: env.db.user, password: env.db.password, database: env.db.name });
+      const p = conn.promise();
+      for (const st of stmts) { try { await p.query(st); } catch(e){ if(!/already exists/i.test(e.message)) throw e; } }
+      // migrasi kolom tambahan (bio/avatar/nim) + backfill — idempoten
+      try {
+        const [c]=await p.query("SELECT COUNT(*) n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='bio'");
+        if(c[0].n===0) await p.query("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT NULL");
+        const [a]=await p.query("SELECT COUNT(*) n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='avatar'");
+        if(a[0].n===0) await p.query("ALTER TABLE users ADD COLUMN avatar VARCHAR(255) DEFAULT NULL");
+        const [n]=await p.query("SELECT COUNT(*) n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='nim'");
+        if(n[0].n===0) await p.query("ALTER TABLE users ADD COLUMN nim VARCHAR(20) DEFAULT NULL AFTER full_name");
+        await p.query("UPDATE users SET nim='230101001' WHERE username='student1' AND nim IS NULL");
+        await p.query("UPDATE users SET nim='230101002' WHERE username='student2' AND nim IS NULL");
+        await p.query("UPDATE users SET nim='230101003' WHERE username='student3' AND nim IS NULL");
+      } catch {}
+      await conn.promise().end().catch(()=>{});
+      logger.info('DB auto-init OK');
+    }
+  } catch(e){ logger.warn('DB auto-init skip: '+(e.message||e)); }
+})();
+
 const server = http.createServer(app);
 
 server.listen(env.port, () => {
