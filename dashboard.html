@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Press+Start+2P&family=VT323&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260818jd">
+  <link rel="stylesheet" href="style.css?v=20260908-library">
 </head>
 <body>
 
@@ -5270,27 +5270,50 @@
               const typeRaw = parts[0] || '';
               const topicRaw = parts[1] || '';
               const base = f.name.replace(/\.[^.]+$/, '');
-              // ponytail: parse SOURCE_YEAR — source INTL/SINTA/etc + year 4-digit
-              let source = '';
+              // ponytail: parse STYLE_LANG_YEAR -> style/lang/year/publisher/title terpisah, judul bersih
+              let style = '';
+              let lang = '';
               let year = '';
+              let publisher = '';
               let title = base;
-              const m1 = base.match(/^([A-Za-z]{2,12})[_\s]+((?:19|20)\d{2})\b/);
-              if (m1) {
-                source = m1[1].toUpperCase();
-                year = m1[2];
-                title = base.slice(m1[0].length);
+              let m = base.match(/^([A-Z]{2,12})[_]+(EN|ID)[_]+((?:19|20)\d{2})[_]+(.*)$/i);
+              if (m) {
+                style = m[1].toUpperCase();
+                lang = m[2].toUpperCase();
+                year = m[3];
+                let rest = m[4];
+                const sep = rest.indexOf('_');
+                if (sep !== -1) {
+                  publisher = rest.substring(0, sep).replace(/_+/g, ' ').trim();
+                  title = rest.substring(sep + 1).replace(/_+/g, ' ').trim();
+                } else {
+                  title = rest.replace(/_+/g, ' ').trim();
+                }
               } else {
-                const m2 = base.match(/^((?:19|20)\d{2})\b[_\s]*/);
-                if (m2) { year = m2[1]; title = base.slice(m2[0].length); }
-                else {
-                  const m3 = base.match(/\b((?:19|20)\d{2})\b/);
-                  if (m3) year = m3[1];
+                m = base.match(/^([A-Z]{2,12})[_]{2,}(.*)$/);
+                if (m) {
+                  style = m[1].toUpperCase();
+                  title = m[2].replace(/_+/g, ' ').trim();
+                } else {
+                  m = base.match(/^([A-Z]{2,12})[_]+((?:19|20)\d{2})[_]+(.*)$/);
+                  if (m) {
+                    style = m[1].toUpperCase();
+                    year = m[2];
+                    title = m[3].replace(/_+/g, ' ').trim();
+                  } else {
+                    const m3 = base.match(/\b((?:19|20)\d{2})\b/);
+                    if (m3) year = m3[1];
+                    title = base.replace(/_+/g, ' ').trim();
+                    title = title.replace(/^[A-Z]{2,12}\s+(EN|ID)\s+\d{4}\s+/i, '').trim();
+                    title = title.replace(/^[A-Z]{2,12}\s+\d{4}\s+/, '').trim();
+                    title = title.replace(/^\d{4}\s+/, '').trim();
+                  }
                 }
               }
-              title = title.replace(/_+/g, ' ').trim();
+              if (!title) title = base.replace(/_+/g, ' ').trim();
               const topic = topicRaw.replace(/_/g, ' ').trim();
               const type = typeRaw === 'jurnal' ? 'Jurnal' : 'Artikel';
-              const publisher = source || type;
+              const source = style;
               return {
                 isFile: true,
                 type,
@@ -5298,9 +5321,11 @@
                 author: '',
                 publisher,
                 source,
+                style,
+                lang,
                 year,
                 topic,
-                keywords: [typeRaw, topic, source].filter(Boolean),
+                keywords: [typeRaw, topic, style, lang, year].filter(Boolean),
                 fileUrl: '/library/files/' + parts.map(encodeURIComponent).join('/')
               };
             });
@@ -5698,10 +5723,11 @@
           const coverCls = 'library-item-cover' + (typeKey === 'jurnal' ? ' library-item-cover-jurnal' : ' library-item-cover-artikel');
           const coverHtml = '<div class="' + coverCls + '"><span class="cover-init">' + escapeHtml(short) + '</span></div>';
           const badges = [];
-          if (d.source) badges.push('<span class="lib-meta-badge lib-meta-source">' + escapeHtml(d.source) + '</span>');
+          if (d.style) badges.push('<span class="lib-meta-badge lib-meta-style">' + escapeHtml(d.style) + '</span>');
+          if (d.lang) badges.push('<span class="lib-meta-badge lib-meta-lang lib-meta-lang-' + escapeHtml(d.lang.toLowerCase()) + '">' + escapeHtml(d.lang) + '</span>');
           if (d.year) badges.push('<span class="lib-meta-badge lib-meta-year">' + escapeHtml(d.year) + '</span>');
           if (d.topic) badges.push('<span class="lib-meta-badge lib-meta-topic">' + escapeHtml(d.topic) + '</span>');
-          // ponytail: label artikel/jurnal dipindah ke kanan label matakuliah agar tidak tertindih save
+          // ponytail: kategori jurnal/artikel per folder (bukan publisher) - kanan agar tidak tertindih save
           if (d.type) badges.push('<span class="lib-meta-badge ' + (typeKey === 'jurnal' ? 'lib-meta-type' : 'lib-meta-type lib-meta-type-artikel') + '">' + escapeHtml(d.type) + '</span>');
           const metaHtml = badges.join('');
           const bodyHtml = '<div class="library-item-body"><div class="library-item-title">' + escapeHtml(d.title) + '</div><div class="library-item-meta">' + metaHtml + '</div></div>';
@@ -6409,6 +6435,6 @@
       })();
     })();
   </script>
-  <script src="js/connectivity.js?v=20260831-final27"></script>
+  <script src="js/connectivity.js?v=20260908-library"></script>
 </body>
 </html>

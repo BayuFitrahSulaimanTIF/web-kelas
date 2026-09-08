@@ -3472,9 +3472,10 @@ font-family: 'VT323', 'Courier New', monospace;
 /* ========== GRID HASIL LIBRARY (CARD) ========== */
 .library-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
   min-width: 0;
+  align-items: stretch;
 }
 
 .library-grid .library-item {
@@ -3489,6 +3490,9 @@ font-family: 'VT323', 'Courier New', monospace;
   overflow: hidden;
   background: #ffffff;
   transition: box-shadow 0.2s, transform 0.15s, border-color 0.2s;
+  position: relative;
+  height: 100%;
+  min-height: 360px;
 }
 
 .library-item:hover {
@@ -3568,25 +3572,28 @@ font-family: 'VT323', 'Courier New', monospace;
 }
 
 .library-item-title {
-  font-family: 'VT323', monospace;
-  font-size: 1rem;
-  font-weight: 700;
+  font-family: 'Inter', 'VT323', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 600;
   color: #111;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.3;
+  line-height: 1.35;
+  min-height: 2.7em;
 }
 
 .library-item-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem 0.4rem;
+  gap: 0.3rem 0.35rem;
   font-family: 'VT323', monospace;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: #888;
+  min-height: 1.8rem;
+  align-content: flex-start;
 }
 
 .lib-meta-badge {
@@ -3603,13 +3610,21 @@ font-family: 'VT323', 'Courier New', monospace;
 .lib-meta-year { background: #e6e6e6; color: #555; }
 .lib-meta-type { background: #b8960f; color: #ffffff; }
 .lib-meta-type-artikel { background: #111111; color: #ffffff; }
+.lib-meta-style { background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; }
+.lib-meta-lang { background: #f3e8ff; color: #7c3aed; border: 1px solid #e9d5ff; }
+.lib-meta-lang-en { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
+.lib-meta-lang-id { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
 
 .library-item-actions {
   display: flex;
   gap: 0.35rem;
-  padding: 0.45rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   border-top: 1px solid #f0f0f0;
   margin-top: auto;
+  min-height: 44px;
+  align-items: center;
+  background: #fafafa;
+  flex-shrink: 0;
 }
 
 .library-item-act {
@@ -3633,15 +3648,21 @@ font-family: 'VT323', 'Courier New', monospace;
 }
 
 .library-save-btn {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
   font-family: 'VT323', monospace;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   padding: 0.12rem 0.45rem;
   border: 1px solid #d0d0d0;
   border-radius: 6px;
-  background: #ffffff;
+  background: rgba(255,255,255,0.95);
   color: #333;
   cursor: pointer;
   transition: all 0.15s;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
 
 .library-save-btn:hover { border-color: #b8960f; color: #b8960f; background: #fbf7e8; }
