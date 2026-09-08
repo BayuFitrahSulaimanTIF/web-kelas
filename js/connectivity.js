@@ -217,7 +217,7 @@
         log('health fetch failed: ' + (e.message || e));
         const internetOk = await hasInternet();
         log('hasInternet fallback=' + internetOk);
-        online = false;
+        online = !!internetOk;
       }
     } catch (e) {
       log('checkNow error: ' + (e.message || e));
