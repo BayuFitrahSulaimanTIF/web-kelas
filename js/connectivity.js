@@ -206,29 +206,18 @@
     log('checkNow started');
     let online = false;
     try {
-      const internetOk = await hasInternet();
-      log('hasInternet=' + internetOk);
-      if (!internetOk) {
+      // ponytail: coba health dulu (same-origin, butuh ngrok header) — internet check hanya fallback, jangan blokir navigasi jika health ok
+      try {
+        const r = await fetch(getApiBase() + '/health', { cache: 'no-store', headers: { 'ngrok-skip-browser-warning': '1' } });
+        const text = await r.text();
+        let data; try { data = JSON.parse(text); } catch { throw new Error('health not json'); }
+        log('health=' + JSON.stringify(data));
+        online = data && (data.status === 'ok' || data.status === 'degraded');
+      } catch (e) {
+        log('health fetch failed: ' + (e.message || e));
+        const internetOk = await hasInternet();
+        log('hasInternet fallback=' + internetOk);
         online = false;
-        log('internetOk=false');
-      } else {
-        // ponytail: skip stability check saat user spam refresh — langsung cek health (stability hanya untuk polling diam)
-        let stable = true;
-        // if (_wasOffline) { stable = await isConnectionStable(); if (!stable) log('unstable → tetap offline'); }
-        if (!stable) {
-          online = false;
-        } else {
-          try {
-            const r = await fetch(getApiBase() + '/health', { cache: 'no-store', headers: { 'ngrok-skip-browser-warning': '1' } });
-            const text = await r.text();
-            let data; try { data = JSON.parse(text); } catch { throw new Error('health not json'); }
-            log('health=' + JSON.stringify(data));
-            online = data && (data.status === 'ok' || data.status === 'degraded');
-          } catch (e) {
-            log('health fetch failed: ' + (e.message || e));
-            online = false;
-          }
-        }
       }
     } catch (e) {
       log('checkNow error: ' + (e.message || e));
