@@ -47,7 +47,7 @@ app.use(helmet({
 }));
 const _corsAllow = String(env.corsOrigin || 'http://localhost:3000').split(',').map(s=>s.trim()).filter(Boolean);
 const _corsIsAllowed = (origin)=>{
-  if(!origin) return true;
+  if(!origin || origin === 'null') return true;
   return _corsAllow.some(p=>{
     if(p==='*') return true;
     if(p.includes('*')){
