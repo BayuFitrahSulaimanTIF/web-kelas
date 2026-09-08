@@ -161,7 +161,7 @@
 
   function getApiBase() {
     if (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) return window.APP_CONFIG.API_BASE_URL;
-    return ((window.location.protocol === 'file:' || window.location.hostname.endsWith('ngrok-free.app')) ? 'http://localhost:3000' : window.location.origin) + '/api';
+    return (window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin) + '/api';
   }
 
   // ponytail: strict internet check — paralel + cache pendek biar respon cepat (±1.5s) tanpa refresh manual
