@@ -208,7 +208,7 @@
     try {
       // ponytail: coba health dulu (same-origin, butuh ngrok header) — internet check hanya fallback, jangan blokir navigasi jika health ok
       try {
-        const r = await fetch(getApiBase() + '/health', { cache: 'no-store', headers: { 'ngrok-skip-browser-warning': '1' } });
+        const healthCtrl = new AbortController(); const healthTimer = setTimeout(() => healthCtrl.abort(), 5000); const r = await fetch(getApiBase() + '/health', { cache: 'no-store', headers: { 'ngrok-skip-browser-warning': '1' }, signal: healthCtrl.signal }); clearTimeout(healthTimer);
         const text = await r.text();
         let data; try { data = JSON.parse(text); } catch { throw new Error('health not json'); }
         log('health=' + JSON.stringify(data));
@@ -264,12 +264,7 @@
   function installGlobalBlock() {
     document.addEventListener('click', (e) => {
       if (e.target.closest && e.target.closest('#offline-overlay')) return;
-      if (state === 'offline') {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        e.stopPropagation();
-        return;
-      }
+      
     }, true);
 
     document.addEventListener('submit', (e) => {
@@ -309,7 +304,7 @@
     if (overlay) {
       overlay.hidden = !shouldBlock;
       overlay.style.display = shouldBlock ? 'flex' : 'none';
-      if (document.body) document.body.style.overflow = shouldBlock ? 'hidden' : '';
+      // ponytail: jangan sembunyikan scroll bahkan saat offline
       const h1 = overlay.querySelector('h1');
       if (h1) h1.textContent = isOnline ? 'Memeriksa koneksi\u2026' : 'This site can\u2019t be reached';
       const err = overlay.querySelector('#offline-err');
