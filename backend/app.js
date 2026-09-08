@@ -36,8 +36,10 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
       imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
       connectSrc: ["'self'", "http://localhost:3000", "https://*.lhr.life", "https://*.serveousercontent.com", "https://*.devtunnels.ms", "https://*.asse.devtunnels.ms", "https://*.ngrok-free.dev", "https://*.ngrok-free.app", "https://*.onrender.com", "https://*.up.railway.app", "https://1.1.1.1", "https://connectivitycheck.gstatic.com", "https://www.google.com"],
+      frameSrc: ["'self'", "https://view.officeapps.live.com"],
+      childSrc: ["'self'", "blob:"],
       objectSrc: ["'none'"],
-      frameAncestors: ["'none'"],
+      frameAncestors: ["'self'"],
       baseUri: ["'self'"],
       formAction: ["'self'"]
     }
