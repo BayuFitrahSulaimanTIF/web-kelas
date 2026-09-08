@@ -298,6 +298,63 @@ app.patch('/api/library/files', authenticate, requireLibraryAdmin, (req, res) =>
     if (!t) return res.status(400).json({ message: 'Mata kuliah tidak valid' });
     newTopic = t;
   }
+  // ponytail: handle style/year/lang edit — reconstruct prefix STYLE_LANG_YEAR
+  let newStyleRaw = req.body.newStyle != null ? String(req.body.newStyle).trim().toUpperCase() : null;
+  let newYearRaw = req.body.newYear != null ? String(req.body.newYear).trim() : null;
+  let newLangRaw = req.body.newLang != null ? String(req.body.newLang).trim().toUpperCase() : null;
+  if (newStyleRaw === 'OTHER') newStyleRaw = '';
+  if (newStyleRaw !== null || newYearRaw !== null || newLangRaw !== null) {
+    const oldBase = target.name.replace(/\.[^.]+$/, '');
+    let oldStyle='', oldYear='', oldLang='';
+    let om = oldBase.match(/^([A-Z]{2,12})[_]+(EN|ID)[_]+((?:19|20)\d{2})[_]+.*$/i);
+    if (om) { oldStyle=om[1].toUpperCase(); oldLang=om[2].toUpperCase(); oldYear=om[3]; }
+    else {
+      om = oldBase.match(/^([A-Z]{2,12})[_]{2,}.*$/);
+      if (om) oldStyle=om[1].toUpperCase();
+      const om2 = oldBase.match(/^([A-Z]{2,12})[_]+((?:19|20)\d{2})[_]+.*$/);
+      if (om2) { oldStyle=om2[1].toUpperCase(); oldYear=om2[2]; }
+      const lm = oldBase.match(/_(EN|ID)_/i);
+      if (lm) oldLang=lm[1].toUpperCase();
+      const ym = oldBase.match(/\b((?:19|20)\d{2})\b/);
+      if (ym && !oldYear) oldYear=ym[1];
+    }
+    const finalStyle = newStyleRaw !== null ? newStyleRaw : oldStyle;
+    const finalYear = newYearRaw !== null ? newYearRaw : oldYear;
+    const finalLang = newLangRaw !== null ? newLangRaw : oldLang;
+    if (finalYear && !/^(2018|2019|2020|2021|2022|2023|2024|2025|2026)$/.test(finalYear)) return res.status(400).json({ message: 'Tahun harus 2018-2026' });
+    if (finalLang && !/^(EN|ID)$/i.test(finalLang)) return res.status(400).json({ message: 'Bahasa harus EN atau ID' });
+    if (finalStyle && !/^[A-Z]{2,12}$/.test(finalStyle)) return res.status(400).json({ message: 'Style tidak valid' });
+    // Extract title part dari newName (strip old prefix)
+    const baseForTitle = newName.replace(/\.[^.]+$/, '');
+    let titlePart = baseForTitle;
+    let tm = baseForTitle.match(/^([A-Z]{2,12})[_]+(EN|ID)[_]+((?:19|20)\d{2})[_]+(.*)$/i);
+    if (tm) titlePart = tm[4];
+    else {
+      tm = baseForTitle.match(/^([A-Z]{2,12})[_]{2,}(.*)$/);
+      if (tm) titlePart = tm[2];
+      else {
+        tm = baseForTitle.match(/^([A-Z]{2,12})[_]+((?:19|20)\d{2})[_]+(.*)$/);
+        if (tm) titlePart = tm[3];
+      }
+    }
+    // Build prefix baru
+    let prefix='';
+    if (finalStyle && finalLang && finalYear) prefix = `${finalStyle}_${finalLang}_${finalYear}_`;
+    else if (finalStyle && finalYear) prefix = `${finalStyle}_${finalYear}_`;
+    else if (finalStyle) prefix = `${finalStyle}__`;
+    else if (finalYear) prefix = `${finalYear}_`;
+    else if (finalLang && finalYear) prefix = `${finalLang}_${finalYear}_`;
+    else if (finalLang) prefix = `${finalLang}_`;
+    const ext = newName.slice(newName.lastIndexOf('.'));
+    const cleanTitle = titlePart.replace(/^_+/,'').replace(/_+/g,'_').trim() || titlePart;
+    if (prefix || finalStyle !== oldStyle || finalYear !== oldYear || finalLang !== oldLang) {
+      const reconstructed = prefix + cleanTitle + ext;
+      newName = sanitizeLibraryName(reconstructed);
+      dot = newName.lastIndexOf('.');
+      const newExt2 = newName.slice(dot+1).toLowerCase();
+      if (!LIBRARY_EXTENSIONS.has(newExt2)) return res.status(400).json({ message: 'Ekstensi tidak valid setelah update style/tahun/bahasa' });
+    }
+  }
   const targetDir = path.join(LIBRARY_DIR, newCategory, newTopic);
   fs.mkdirSync(targetDir, { recursive: true });
   const sameLocation = newCategory === target.category && newTopic === target.topic;

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Press+Start+2P&family=VT323&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260909-font2">
+  <link rel="stylesheet" href="style.css?v=20260909-edit">
 </head>
 <body>
 
@@ -1015,6 +1015,44 @@
           <span>Mata Kuliah</span>
           <select id="library-edit-topic"></select>
         </label>
+        <div class="library-edit-row">
+          <label class="library-edit-field">
+            <span>Style</span>
+            <select id="library-edit-style">
+              <option value="">Tanpa style</option>
+                <option value="APA">APA</option>
+              <option value="SINTA">SINTA</option>
+              <option value="INTL">INTL</option>
+              <option value="ARXIV">ARXIV</option>
+              <option value="IEEE">IEEE</option>
+              <option value="OA">OA</option>
+              <option value="OTHER">Lainnya</option>
+            </select>
+          </label>
+          <label class="library-edit-field">
+            <span>Tahun</span>
+            <select id="library-edit-year">
+              <option value="">Tanpa tahun</option>
+              <option value="2018">2018</option>
+              <option value="2019">2019</option>
+              <option value="2020">2020</option>
+              <option value="2021">2021</option>
+              <option value="2022">2022</option>
+              <option value="2023">2023</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </label>
+          <label class="library-edit-field">
+            <span>Bahasa</span>
+            <select id="library-edit-lang">
+              <option value="">Tanpa bahasa</option>
+              <option value="EN">EN</option>
+              <option value="ID">ID</option>
+            </select>
+          </label>
+        </div>
         <label class="library-edit-field">
           <span>Nama file</span>
           <input type="text" id="library-edit-input" maxlength="200" placeholder="Nama file (tanpa .pdf juga bisa)">
@@ -5794,6 +5832,9 @@
       let pendingEditName = '';
       let pendingEditCategory = '';
       let pendingEditTopic = '';
+      let pendingEditStyle = '';
+      let pendingEditYear = '';
+      let pendingEditLang = '';
       const editOverlay = document.getElementById('library-edit-overlay');
       const editInput = document.getElementById('library-edit-input');
       const editMeta = document.getElementById('library-edit-meta');
@@ -5803,6 +5844,9 @@
       const editCloseBtn = document.getElementById('library-edit-close');
       const editCategory = document.getElementById('library-edit-category');
       const editTopic = document.getElementById('library-edit-topic');
+      const editStyle = document.getElementById('library-edit-style');
+      const editYear = document.getElementById('library-edit-year');
+      const editLang = document.getElementById('library-edit-lang');
       function fillEditTopicOptions(current) {
         const topics = sortedTopics();
         if (!topics.length) topics.push.apply(topics, LIBRARY_TOPIC_ORDER.map(titleCaseTopic));
@@ -5818,11 +5862,29 @@
         const parts = rel.split('/');
         pendingEditCategory = parts[0] || 'artikel';
         pendingEditTopic = parts[1] || '';
+        // ponytail: parse style/lang/year dari nama file untuk isi form edit
+        const base = realName.replace(/\.[^.]+$/, '');
+        let m = base.match(/^([A-Z]{2,12})[_]+(EN|ID)[_]+((?:19|20)\d{2})[_]+.*$/i);
+        if (m) {
+          pendingEditStyle = m[1].toUpperCase();
+          pendingEditLang = m[2].toUpperCase();
+          pendingEditYear = m[3];
+        } else {
+          m = base.match(/^([A-Z]{2,12})[_]{2,}.*$/);
+          if (m) pendingEditStyle = m[1].toUpperCase(); else pendingEditStyle = '';
+          m = base.match(/^([A-Z]{2,12})[_]+((?:19|20)\d{2})[_]+.*$/);
+          if (m) { pendingEditStyle = m[1].toUpperCase(); pendingEditYear = m[2]; } else { const mm = base.match(/\b((?:19|20)\d{2})\b/); pendingEditYear = mm ? mm[1] : ''; }
+          if (!m) pendingEditLang = '';
+        }
+        if (!pendingEditLang) { const lm = base.match(/_(EN|ID)_/i); if (lm) pendingEditLang = lm[1].toUpperCase(); }
         const typeLabel = parts[0] ? (parts[0] === 'jurnal' ? 'Jurnal' : 'Artikel') : '';
         const topicLabel = parts[1] ? parts[1].replace(/_/g,' ') : '';
         editMeta.innerHTML = (typeLabel ? '<span>' + escapeHtml(typeLabel) + '</span>' : '') + (topicLabel ? '<span>' + escapeHtml(topicLabel) + '</span>' : '') + '<span style="max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(realName) + '</span>';
         editCategory.value = pendingEditCategory;
         fillEditTopicOptions(pendingEditTopic);
+        if (editStyle) { const hasStyle = Array.from(editStyle.options).some(o=>o.value===pendingEditStyle); editStyle.value = hasStyle ? pendingEditStyle : (pendingEditStyle ? 'OTHER' : ''); }
+        if (editYear) editYear.value = pendingEditYear || '';
+        if (editLang) editLang.value = pendingEditLang || '';
         // tampilkan nama tanpa ekstensi juga boleh — hilangkan .pdf di input biar sesuai permintaan
         const dot = realName.lastIndexOf('.');
         const displayName = dot > 0 ? realName.slice(0, dot) : realName;
@@ -5842,19 +5904,27 @@
         const newName = editInput.value.trim();
         const newCategory = editCategory.value;
         const newTopic = editTopic.value.trim();
+        const newStyle = editStyle ? editStyle.value.trim() : '';
+        const newYear = editYear ? editYear.value.trim() : '';
+        const newLang = editLang ? editLang.value.trim() : '';
         if (!newName) { editError.textContent = 'Nama file tidak boleh kosong.'; return; }
         if (!newCategory) { editError.textContent = 'Jenis wajib dipilih.'; return; }
         if (!newTopic) { editError.textContent = 'Mata kuliah wajib dipilih.'; return; }
+        if (newYear && !/^(2018|2019|2020|2021|2022|2023|2024|2025|2026)$/.test(newYear)) { editError.textContent = 'Tahun harus 2018-2026.'; return; }
+        if (newLang && !/^(EN|ID)$/i.test(newLang)) { editError.textContent = 'Bahasa harus EN atau ID.'; return; }
         const nameUnchanged = newName === pendingEditName;
         const catUnchanged = newCategory === pendingEditCategory;
         const topicUnchanged = newTopic.toLowerCase() === pendingEditTopic.toLowerCase();
-        if (nameUnchanged && catUnchanged && topicUnchanged) { closeLibraryEditModal(); return; }
+        const styleUnchanged = (newStyle||'').toUpperCase() === (pendingEditStyle||'').toUpperCase();
+        const yearUnchanged = (newYear||'') === (pendingEditYear||'');
+        const langUnchanged = (newLang||'').toUpperCase() === (pendingEditLang||'').toUpperCase();
+        if (nameUnchanged && catUnchanged && topicUnchanged && styleUnchanged && yearUnchanged && langUnchanged) { closeLibraryEditModal(); return; }
         editSaveBtn.disabled = true;
         editError.textContent = '';
         fetch(API_ORIGIN + '/api/library/files', {
           method: 'PATCH',
           headers: Object.assign(authHeaders(), { 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ path: pendingEditPath, newName, newCategory, newTopic })
+          body: JSON.stringify({ path: pendingEditPath, newName, newCategory, newTopic, newStyle, newYear, newLang })
         }).then((r) => r.json().then((d) => ({ ok: r.ok, d })))
           .then(({ ok, d }) => {
             editSaveBtn.disabled = false;
@@ -6467,6 +6537,6 @@
       })();
     })();
   </script>
-  <script src="js/connectivity.js?v=20260909-pdf2"></script>
+  <script src="js/connectivity.js?v=20260909-edit"></script>
 </body>
 </html>

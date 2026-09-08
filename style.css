@@ -4838,6 +4838,9 @@ font-family: 'VT323', 'Courier New', monospace;
   padding: 0 0.2rem;
 }
 .library-edit-body { padding: 1rem; display: flex; flex-direction: column; gap: 0.7rem; }
+.library-edit-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem; }
+.library-edit-row .library-edit-field { margin: 0; }
+@media (max-width: 500px) { .library-edit-row { grid-template-columns: 1fr; } }
 .library-edit-field { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; color: #333; }
 .library-edit-field input,
 .library-edit-field select {
