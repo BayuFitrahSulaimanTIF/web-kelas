@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Press+Start+2P&family=VT323&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260908-library">
+  <link rel="stylesheet" href="style.css?v=20260909-pdf">
 </head>
 <body>
 
@@ -5923,11 +5923,42 @@
         readerOpenTab.href = abs;
         readerDownload.href = abs;
         readerFrame.innerHTML = '';
+        // ponytail: bersihkan blob URL lama jika ada
+        if (readerFrame._blobUrl) { try{ URL.revokeObjectURL(readerFrame._blobUrl); }catch{} readerFrame._blobUrl=null; }
         if (ext === 'pdf' || ext === 'txt') {
-          const iframe = document.createElement('iframe');
-          iframe.src = abs;
-          iframe.setAttribute('allowfullscreen', 'true');
-          readerFrame.appendChild(iframe);
+          const loading = document.createElement('div');
+          loading.textContent = 'Memuat dokumen...';
+          loading.style.cssText = 'padding:2rem;text-align:center;color:#666;font:14px Inter, sans-serif';
+          readerFrame.appendChild(loading);
+          fetch(abs, {headers: {'ngrok-skip-browser-warning':'1'}, cache:'no-store'})
+            .then(r => {
+              if (!r.ok) throw new Error('Gagal memuat ('+r.status+')');
+              const ct=(r.headers.get('content-type')||'').toLowerCase();
+              if(ct.includes('text/html')){
+                return r.text().then(tx=>{
+                  if(tx.trim().startsWith('<!DO')||tx.trim().startsWith('<html')||tx.includes('ERR_NGROK')) throw new Error('File tidak tersedia / rusak');
+                  throw new Error('Format tidak valid');
+                });
+              }
+              return r.blob();
+            })
+            .then(blob => {
+              if(!blob || blob.size< 512) throw new Error('File rusak atau kosong');
+              if(blob.type && blob.type.includes('html')) throw new Error('File rusak');
+              const url = URL.createObjectURL(blob);
+              readerFrame._blobUrl=url;
+              loading.remove();
+              const iframe = document.createElement('iframe');
+              iframe.src = url;
+              iframe.setAttribute('allowfullscreen', 'true');
+              iframe.onerror=()=>{ loading.textContent='Gagal menampilkan PDF \u2014 coba Download.'; loading.style.color='#c0392b'; try{readerFrame.appendChild(loading);}catch{} };
+              readerFrame.appendChild(iframe);
+            })
+            .catch(err => {
+              loading.textContent = 'Gagal memuat PDF: ' + (err.message||err) + ' \u2014 coba Download / Buka di tab baru.';
+              loading.style.color='#c0392b';
+            });
+          // ponytail: fetch blob agar ngrok header terkirim & bisa deteksi HTML rusak
         } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].indexOf(ext) >= 0) {
           const img = document.createElement('img');
           img.src = abs;
@@ -5946,6 +5977,7 @@
 
       function closeLibraryReader() {
         readerOverlay.classList.remove('open');
+        if (readerFrame._blobUrl) { try{ URL.revokeObjectURL(readerFrame._blobUrl); }catch{} readerFrame._blobUrl=null; }
         readerFrame.innerHTML = '';
       }
 
@@ -6435,6 +6467,6 @@
       })();
     })();
   </script>
-  <script src="js/connectivity.js?v=20260908-library"></script>
+  <script src="js/connectivity.js?v=20260909-pdf"></script>
 </body>
 </html>
