@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Press+Start+2P&family=VT323&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260909-edit">
+  <link rel="stylesheet" href="style.css?v=20260909-search">
 </head>
 <body>
 
@@ -5695,11 +5695,17 @@
       }
 
       function librarySearch(query, docs) {
-        const tokens = normalizeText(query).split(' ').filter(Boolean);
-        if (!tokens.length) return [];
+        const rawTokens = normalizeText(query).split(' ').filter(Boolean);
+        if (!rawTokens.length) return [];
+        // ponytail: stopwords & token pendek (a, of, di, dan, xxxx, 00) tidak dihitung agar tidak match 3930 file
+        const STOPWORDS = new Set(['a','an','the','and','or','of','on','in','at','to','for','with','by','from','as','is','are','was','were','be','been','di','ke','dari','dan','yang','untuk','pada','dengan','adalah','itu','ini','0000','00','000','xxxx']);
+        const tokens = rawTokens.filter(t => t.length > 2 && !STOPWORDS.has(t));
+        const effectiveTokens = tokens.length ? tokens : rawTokens.filter(t => t.length > 1);
+        if (!effectiveTokens.length) return [];
         const typeHits = Object.entries(LIBRARY_TYPE_SYNONYMS)
-          .filter(([, syns]) => syns.some((s) => tokens.includes(s)))
+          .filter(([, syns]) => syns.some((s) => effectiveTokens.includes(s)))
           .map(([canonical]) => canonical);
+        const normQuery = normalizeText(query);
         return (docs || libraryFiles)
           .map((doc) => {
             const title = normalizeText(doc.title);
@@ -5707,23 +5713,39 @@
             const publisher = normalizeText(doc.publisher);
             const abstract = normalizeText(doc.abstract);
             const kw = (doc.keywords || []).map(normalizeText);
+            // ponytail: jika query adalah substring judul yang dinormalisasi -> skor tinggi (exact phrase)
+            if (title.includes(normQuery) && normQuery.length > 10) {
+              return { doc, score: 1000, matched: effectiveTokens.length };
+            }
             let score = 0;
             let matched = 0;
-            for (const token of tokens) {
+            for (const token of effectiveTokens) {
               let tokScore = 0;
-              if (title.includes(token)) tokScore += 10;
-              if (kw.some((k) => k.includes(token))) tokScore += 8;
-              if (author.includes(token)) tokScore += 6;
-              if (publisher.includes(token)) tokScore += 5;
-              if (abstract.includes(token)) tokScore += 3;
+              // ponytail: whole-word / bigram match lebih presisi, bukan substring "a" di "access"
+              const titleWords = title.split(' ');
+              if (titleWords.includes(token)) tokScore += 10;
+              else if (title.includes(token) && token.length > 3) tokScore += 4;
+              if (kw.some((k) => k.split(' ').includes(token))) tokScore += 8;
+              else if (kw.some((k) => k.includes(token)) && token.length > 3) tokScore += 3;
+              if (author.split(' ').includes(token)) tokScore += 6;
+              if (publisher.split(' ').includes(token)) tokScore += 5;
+              if (abstract.split(' ').includes(token)) tokScore += 3;
               if (tokScore > 0) matched++;
               score += tokScore;
             }
             if (typeHits.includes(doc.type.toLowerCase())) score += 8;
+            // ponytail: butuh minimal 60% token bermakna match & skor tinggi agar tidak 3930 hasil
+            const matchRatio = matched / effectiveTokens.length;
+            if (matchRatio < 0.6) return { doc, score: 0, matched };
+            // untuk query panjang, skor harus proporsional
+            const minScore = effectiveTokens.length >= 4 ? effectiveTokens.length * 6 : 8;
+            if (score < minScore) return { doc, score: 0, matched };
             score += matched * 2;
+            // bonus jika banyak token judul yang match
+            if (matched >= 3 && title.split(' ').filter(w=>effectiveTokens.includes(w)).length >= 2) score += 10;
             return { doc, score };
           })
-          .filter((r) => r.score >= 6)
+          .filter((r) => r.score >= 8)
           .sort((a, b) => b.score - a.score || a.doc.title.localeCompare(b.doc.title));
       }
 
@@ -5742,7 +5764,7 @@
               libraryResultsEl.innerHTML = '<p class="library-empty">Tidak ada file ' + typeLabel + ' pada kategori "' + escapeHtml(activeFilter) + '".</p>';
             }
           } else {
-            libraryResultsEl.innerHTML = '<p class="library-empty">Tidak ada hasil untuk "' + escapeHtml(q) + '" di kategori "' + escapeHtml(activeFilter) + '". Coba kata kunci lain.</p>';
+            libraryResultsEl.innerHTML = '<p class="library-empty">Ebook tersebut tidak tersedia</p>';
           }
           return;
         }
@@ -6537,6 +6559,6 @@
       })();
     })();
   </script>
-  <script src="js/connectivity.js?v=20260909-edit"></script>
+  <script src="js/connectivity.js?v=20260909-search"></script>
 </body>
 </html>
