@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Press+Start+2P&family=VT323&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260909-search">
+  <link rel="stylesheet" href="style.css?v=20260909-jadwal">
 </head>
 <body>
 
@@ -2283,6 +2283,18 @@
           if(emptyAddButton) emptyAddButton.style.display=admin?'':'none';
           const colAction=document.querySelector('#jadwal-view .col-action');
           if(colAction) colAction.style.display=admin?'':'none';
+          // ponytail: untuk student, pesan empty lebih proper tanpa ajakan tambah
+          if(emptyState){
+            const h3=emptyState.querySelector('h3');
+            const p=emptyState.querySelector('p');
+            if(!admin){
+              if(h3) h3.textContent='Belum Ada Jadwal';
+              if(p) p.textContent='Belum ada jadwal yang disiapkan oleh admin.';
+            } else {
+              if(h3) h3.textContent='Belum Ada Jadwal';
+              if(p) p.textContent='Silakan tambahkan jadwal kuliah menggunakan tombol "Tambah Jadwal".';
+            }
+          }
         }
         const modal = document.getElementById('scheduleModal');
         const openModalButton = document.getElementById('openModalButton');
@@ -6559,6 +6571,6 @@
       })();
     })();
   </script>
-  <script src="js/connectivity.js?v=20260909-search"></script>
+  <script src="js/connectivity.js?v=20260909-jadwal"></script>
 </body>
 </html>
