@@ -16,10 +16,10 @@
 const __serverOrigin = 'http://localhost:3000';
 const __isFileOrigin = window.location.protocol === 'file:';
 const __isVercel = window.location.hostname.includes('vercel.app');
-// Vercel: backend co-host via /api (vercel.json -> api/index.js) = same-origin, jadi __apiOrigin = ''
-// Jika backend eksternal (ngrok/Render) isi __externalApiOrigin manual di bawah saat DB belum di Vercel
-const __externalApiOrigin = ''; // contoh: 'https://cranium-feeble-encroach.ngrok-free.dev' — kosongkan jika pakai Vercel API
-const __apiOrigin = __isFileOrigin ? __serverOrigin : (__isVercel && __externalApiOrigin ? __externalApiOrigin : '');
+// ponytail: Vercel frontend pakai ngrok yang masih hidup (DB lokal), biar login langsung jalan tanpa DB eksternal
+// jika nanti pindah ke Render/Railway, ganti ke URL backend permanen tersebut
+const __externalApiOrigin = 'https://cranium-feeble-encroach.ngrok-free.dev';
+const __apiOrigin = __isFileOrigin ? __serverOrigin : (__isVercel ? __externalApiOrigin : '');
 
 window.APP_CONFIG = {
   SITE_NAME: 'Sistem Mata Kuliah Perguruan Tinggi',
