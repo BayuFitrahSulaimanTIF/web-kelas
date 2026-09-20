@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const LIBRARY_DIR = 'C:/Users/t/Downloads/library';
-const LIBRARY_EXTENSIONS = new Set(['pdf', 'doc', 'docx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'gif', 'txt']);
+const LIBRARY_EXTENSIONS = new Set(['pdf', 'doc', 'docx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'gif', 'txt', 'mp4']);
 
 function walkLibrary(dir, base, out) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });

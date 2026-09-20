@@ -91,7 +91,8 @@ app.use('/library/files', express.static(LIBRARY_DIR, {
   setHeaders: (res, p)=>{
     res.set('X-Content-Type-Options','nosniff');
     const ext = String(p).split('.').pop().toLowerCase();
-    if(!['pdf'].includes(ext)) res.set('Content-Disposition','attachment; filename="'+String(p).split('/').pop()+'"');
+    // ponytail: media inline agar <img>/<video>/iframe bisa tampil; attachment hanya untuk Office
+    if(!['pdf','jpg','jpeg','png','gif','txt','mp4'].includes(ext)) res.set('Content-Disposition','attachment; filename="'+String(p).split('/').pop()+'"');
   }
 }));
 
@@ -111,7 +112,7 @@ app.get('/api/library/files', (req, res) => {
 });
 
 // ============ UPLOAD KE LIBRARY (kategori jurnal/artikel + mata kuliah) ============
-const LIBRARY_EXTENSIONS = new Set(['pdf', 'doc', 'docx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'gif', 'txt']);
+const LIBRARY_EXTENSIONS = new Set(['pdf', 'doc', 'docx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'gif', 'txt', 'mp4']);
 const MAX_LIBRARY_BYTES = 1024 * 1024 * 1024; // 1 GB per file
 
 function sanitizeLibraryTopic(raw) {
@@ -156,6 +157,7 @@ function isValidLibraryMagic(filePath, ext){
     if(['png'].includes(ext)) return h.startsWith('89504e47');
     if(['gif'].includes(ext)) return s4.startsWith('GIF');
     if(['doc','docx','ppt','pptx'].includes(ext)) return h.startsWith('504b0304') || h.startsWith('d0cf11e0');
+    if(['mp4'].includes(ext)) return buf.slice(4,8).toString() === 'ftyp';
     if(['txt'].includes(ext)) return true;
     return true;
   }catch{ return false; }
@@ -408,13 +410,26 @@ function writeSaved(data) {
   fs.writeFileSync(SAVED_FILE, JSON.stringify(data, null, 2));
 }
 
+// ponytail: path simpanan boleh jenis/folder apa pun (skripsi, dst) — cukup cegah traversal
+function resolveSavedPath(relPath) {
+  let decoded;
+  try { decoded = decodeURIComponent(String(relPath || '')); } catch (e) { return null; }
+  if (!decoded || decoded.indexOf('..') !== -1) return null;
+  const parts = decoded.split('/');
+  if (parts.some((p) => !p || p === '.')) return null;
+  const full = path.resolve(LIBRARY_DIR, ...parts);
+  const root = path.resolve(LIBRARY_DIR) + path.sep;
+  if (full.indexOf(root) !== 0) return null;
+  return { full, relative: decoded };
+}
+
 app.get('/api/library/saved', authenticate, (req, res) => {
   const data = readSaved();
   res.json({ paths: data[String(req.user.id)] || [] });
 });
 
 app.post('/api/library/saved', authenticate, (req, res) => {
-  const target = resolveLibraryFile(req.body.path);
+  const target = resolveSavedPath(req.body.path);
   if (!target) return res.status(400).json({ message: 'Lokasi file tidak valid' });
   if (!fs.existsSync(target.full)) return res.status(404).json({ message: 'File tidak ditemukan' });
   const data = readSaved();
@@ -427,7 +442,7 @@ app.post('/api/library/saved', authenticate, (req, res) => {
 });
 
 app.delete('/api/library/saved', authenticate, (req, res) => {
-  const target = resolveLibraryFile(req.body.path);
+  const target = resolveSavedPath(req.body.path);
   if (!target) return res.status(400).json({ message: 'Lokasi file tidak valid' });
   const data = readSaved();
   const key = String(req.user.id);
@@ -435,6 +450,54 @@ app.delete('/api/library/saved', authenticate, (req, res) => {
   data[key] = list;
   writeSaved(data);
   res.json({ saved: false, paths: list });
+});
+
+// ============ JADWAL KULIAH (persist server, bukan localStorage) ============
+// ponytail: simpan di backend/jadwal.json agar tidak hilang saat update git/cache dibersihkan;
+// file ini sengaja di-ignore git (persist lokal), tapi dibuat otomatis jika belum ada.
+const JADWAL_FILE = path.join(__dirname, 'jadwal.json');
+function readJadwal() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(JADWAL_FILE, 'utf8'));
+    if (Array.isArray(parsed)) return parsed;
+  } catch (e) {}
+  return [];
+}
+function writeJadwal(arr) {
+  fs.writeFileSync(JADWAL_FILE, JSON.stringify(arr, null, 2));
+}
+app.get('/api/jadwal', authenticate, (req, res) => {
+  res.json(readJadwal());
+});
+app.post('/api/jadwal', authenticate, requireLibraryAdmin, (req, res) => {
+  const { courseName, startTime, endTime, day, room } = req.body || {};
+  const cn = String(courseName || '').trim().slice(0, 120);
+  const st = String(startTime || '').trim();
+  const et = String(endTime || '').trim();
+  const d = String(day || '').trim();
+  const r = String(room || '').trim().slice(0, 60);
+  const validDay = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+  if (!cn) return res.status(400).json({ message: 'Mata kuliah wajib diisi' });
+  if (!st || !et || st >= et) return res.status(400).json({ message: 'Jam tidak valid' });
+  if (!validDay.includes(d)) return res.status(400).json({ message: 'Hari tidak valid' });
+  if (!r) return res.status(400).json({ message: 'Ruangan wajib diisi' });
+  const arr = readJadwal();
+  const item = { id: Date.now(), courseName: cn, startTime: st, endTime: et, day: d, room: r };
+  arr.push(item);
+  // sort Senin-Jumat dulu, lalu jam
+  const order = { Senin:1, Selasa:2, Rabu:3, Kamis:4, Jumat:5, Sabtu:6, Minggu:7 };
+  arr.sort((a,b)=> (order[a.day]-order[b.day]) || a.startTime.localeCompare(b.startTime));
+  writeJadwal(arr);
+  res.status(201).json(item);
+});
+app.delete('/api/jadwal/:id', authenticate, requireLibraryAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  const arr = readJadwal();
+  const idx = arr.findIndex(s=>s.id===id);
+  if (idx===-1) return res.status(404).json({ message: 'Jadwal tidak ditemukan' });
+  arr.splice(idx,1);
+  writeJadwal(arr);
+  res.json({ message: 'Jadwal dihapus' });
 });
 
 // ============ BANNER ETALASE (info tiap slide; admin bisa ubah) ============

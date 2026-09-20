@@ -1,7 +1,9 @@
 .env
+# uploads & data persist lokal — jangan ikut terhapus saat git clean/update
 uploads/
 *.log
 saved_library.json
+jadwal.json
 banners.json
 news.json
 .watchdog.pid

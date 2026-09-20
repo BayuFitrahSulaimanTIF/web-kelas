@@ -15,7 +15,11 @@
 // ke origin server yang benar.
 const __serverOrigin = 'http://localhost:3000';
 const __isFileOrigin = window.location.protocol === 'file:';
-const __apiOrigin = __isFileOrigin ? __serverOrigin : '';
+const __isVercel = window.location.hostname.includes('vercel.app');
+// Vercel: backend co-host via /api (vercel.json -> api/index.js) = same-origin, jadi __apiOrigin = ''
+// Jika backend eksternal (ngrok/Render) isi __externalApiOrigin manual di bawah saat DB belum di Vercel
+const __externalApiOrigin = ''; // contoh: 'https://cranium-feeble-encroach.ngrok-free.dev' — kosongkan jika pakai Vercel API
+const __apiOrigin = __isFileOrigin ? __serverOrigin : (__isVercel && __externalApiOrigin ? __externalApiOrigin : '');
 
 window.APP_CONFIG = {
   SITE_NAME: 'Sistem Mata Kuliah Perguruan Tinggi',

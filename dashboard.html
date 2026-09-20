@@ -1298,7 +1298,6 @@
         // hidupkan lagi saat kembali ke Home.
         if (index === 0) storyQueue();
         else storyHideChrome();
-        classMenuLinks.forEach(function (l) { l.classList.toggle('active', false); });
         syncClassMenuActive();
         closeClassMenu();
       }
@@ -2270,11 +2269,33 @@
       // ---------- Sub-navigasi Jadwal ----------
       // ---------- Sub-navigasi Jadwal (form dari C:\Users\t\Downloads\testing\form) ----------
       (function initJadwal() {
-        const dayOrder = { Senin: 1, Selasa: 2, Rabu: 3, Kamis: 4, Jumat: 5 };
+        const dayOrder = { Senin: 1, Selasa: 2, Rabu: 3, Kamis: 4, Jumat: 5, Sabtu:6, Minggu:7 };
         let schedules = [];
-        try { const raw = localStorage.getItem('jadwalList'); if (raw) { const arr = JSON.parse(raw); if (Array.isArray(arr)) schedules = arr.map(s => s.courseName ? s : { id: s.id||Date.now()+Math.random(), courseName: s.mk||s.courseName, startTime: s.jamMulai||s.startTime, endTime: s.jamSelesai||s.endTime, day: s.hari||s.day, room: s.ruangan||s.room }); } } catch {}
-        // migrasi jika ada jadwalList lama, simpan sebagai schedules
-        function saveSchedules() { try { localStorage.setItem('jadwalList', JSON.stringify(schedules)); } catch {} }
+        // ponytail: persist server (jadwal.json) — localStorage hanya cache/migrasi awal
+        try { const raw = localStorage.getItem('jadwalList'); if (raw) { const arr = JSON.parse(raw); if (Array.isArray(arr) && arr.length) schedules = arr.map(s => s.courseName ? s : { id: s.id||Date.now()+Math.random(), courseName: s.mk||s.courseName, startTime: s.jamMulai||s.startTime, endTime: s.jamSelesai||s.endTime, day: s.hari||s.day, room: s.ruangan||s.room }); } } catch {}
+        function cacheSchedules(){ try{ localStorage.setItem('jadwalList', JSON.stringify(schedules)); }catch{} }
+        function saveSchedules(){ cacheSchedules(); }
+        function loadSchedules(){
+          fetch('/api/jadwal', { headers: authHeaders(), cache:'no-store' })
+            .then(r=> r.ok ? r.json() : Promise.reject())
+            .then(arr=>{
+              if(Array.isArray(arr) && arr.length){
+                schedules = arr;
+                cacheSchedules();
+              } else if(Array.isArray(arr) && !arr.length && schedules.length){
+                // jika server masih kosong tapi ada cache lama (migrasi sekali)
+                // upload cache ke server (admin saja, tapi coba untuk semua)
+                schedules.forEach(s=>{
+                  fetch('/api/jadwal', { method:'POST', headers: Object.assign({ 'Content-Type':'application/json' }, authHeaders()), body: JSON.stringify(s) }).catch(()=>{});
+                });
+              } else {
+                schedules = Array.isArray(arr) ? arr : [];
+                cacheSchedules();
+              }
+              sortSchedules(); renderSchedules();
+            })
+            .catch(()=>{ /* offline: pakai cache localStorage */ sortSchedules(); renderSchedules(); });
+        }
         // ponytail: hanya ADMIN boleh ubah jadwal — STUDENT hanya lihat
         function isJadwalAdmin(){ try { if(typeof isAdminUser==='function') return isAdminUser(); const u=JSON.parse(sessionStorage.getItem('auth_user')||'null'); return !!(u&&u.role==='admin'); } catch { return false; } }
         function updateJadwalAdminUI(){
@@ -2363,15 +2384,33 @@
           if(!validateTime(startTime,endTime)){ alert('Jam selesai harus lebih besar daripada jam berangkat.'); return; }
           if(!day){ alert('Silakan pilih hari.'); return; }
           if(!room){ alert('Silakan pilih ruangan.'); return; }
-          schedules.push({ id: Date.now(), courseName, startTime, endTime, day, room });
-          sortSchedules(); saveSchedules(); renderSchedules(); closeModal(); showToast();
+          // ponytail: simpan ke server dulu, fallback ke lokal jika offline
+          fetch('/api/jadwal', { method:'POST', headers: Object.assign({ 'Content-Type':'application/json' }, authHeaders()), body: JSON.stringify({ courseName, startTime, endTime, day, room }) })
+            .then(r=> r.json().then(d=>({ok:r.ok,d})))
+            .then(({ok,d})=>{
+              if(!ok) throw new Error(d.message||'Gagal menyimpan');
+              schedules.push(d.id ? d : { id: Date.now(), courseName, startTime, endTime, day, room });
+              sortSchedules(); cacheSchedules(); renderSchedules(); closeModal(); showToast();
+            })
+            .catch(err=>{
+              schedules.push({ id: Date.now(), courseName, startTime, endTime, day, room });
+              sortSchedules(); cacheSchedules(); renderSchedules(); closeModal(); showToast();
+            });
         }
         let toastTimeout=null;
         function showToast(){ if(!toast) return; clearTimeout(toastTimeout); toast.classList.add('show'); toastTimeout=setTimeout(()=>toast.classList.remove('show'),3000); }
         function deleteSchedule(id){
           if(!isJadwalAdmin()){ if(toast){ toast.textContent='Hanya ADMIN dapat menghapus jadwal'; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2500);} return; }
           if(!confirm('Apakah Anda yakin ingin menghapus jadwal ini?')) return;
-          schedules=schedules.filter(s=>s.id!==id); saveSchedules(); renderSchedules();
+          fetch('/api/jadwal/'+id, { method:'DELETE', headers: authHeaders() })
+            .then(r=> r.json().then(d=>({ok:r.ok,d})).catch(()=>({ok:r.ok,d:{}})))
+            .then(({ok})=>{
+              if(!ok) throw new Error('Gagal hapus');
+              schedules=schedules.filter(s=>s.id!==id); cacheSchedules(); renderSchedules();
+            })
+            .catch(()=>{
+              schedules=schedules.filter(s=>s.id!==id); cacheSchedules(); renderSchedules();
+            });
         }
         if(openModalButton) openModalButton.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); openModal(); });
         if(emptyAddButton) emptyAddButton.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); openModal(); });
@@ -2402,10 +2441,11 @@
             twTimer = setTimeout(() => tableWrapper.classList.remove('is-scrolling'), 700);
           }, {passive:true});
         }
-        generateRoomOptions(); showCurrentDate(); renderSchedules();
+        generateRoomOptions(); showCurrentDate(); renderSchedules(); loadSchedules();
         // expose untuk showJadwalView agar refresh saat pindah tab
-        window._jadwalRender = renderSchedules;
+        window._jadwalRender = function(){ loadSchedules(); };
         window._jadwalOpen = openModal;
+        window._jadwalReload = loadSchedules;
       })();
       // compat: renderJadwal lama dipanggil showJadwalView
       function renderJadwal(){ if(window._jadwalRender) window._jadwalRender(); }
@@ -5002,16 +5042,17 @@
         }
         const base = miniTopic === 'Semua'
           ? libraryFiles.slice()
-          : libraryFiles.filter((d) => (d.topic || '').toLowerCase() === miniTopic.toLowerCase());
+          : libraryFiles.filter((d) => d.courseTopic === miniTopic);
         const results = keyword ? librarySearch(keyword, base) : base;
         const docs = keyword ? results.map((r) => r.doc || r) : results.slice().sort((a, b) => a.title.localeCompare(b.title));
         const topics = ['Semua'].concat(sortedTopics());
         miniLibChipsEl.innerHTML = topics.map((t) => {
           const count = t === 'Semua'
             ? libraryFiles.length
-            : libraryFiles.filter((d) => (d.topic || '').toLowerCase() === t.toLowerCase()).length;
+            : libraryFiles.filter((d) => d.courseTopic === t).length;
+          const label = t === 'Semua' ? t : titleCaseTopic(t);
           return '<button type="button" class="mini-chip' + (t === miniTopic ? ' active' : '') + '" data-topic="' + escapeHtml(t) + '">' +
-            escapeHtml(t) + ' <span class="mini-chip-count">' + count + '</span></button>';
+            escapeHtml(label) + ' <span class="mini-chip-count">' + count + '</span></button>';
         }).join('');
         miniLibChipsEl.querySelectorAll('.mini-chip').forEach((chip) => {
           chip.addEventListener('click', () => {
@@ -5021,8 +5062,9 @@
         });
         miniLibGridEl.innerHTML = docs.length
           ? docs.map((d) => {
-              const short = (LIBRARY_TYPE_SHORT[String(d.type || '').toLowerCase()]) || 'PDF';
-              const coverCls = 'mini-book-cover' + (String(d.type || '').toLowerCase() === 'jurnal' ? ' mini-book-cover-jurnal' : ' mini-book-cover-artikel');
+              const typeKey = d.typeKey || String(d.type || '').toLowerCase();
+              const short = (LIBRARY_TYPE_SHORT[typeKey]) || typeKey.slice(0, 3).toUpperCase() || 'PDF';
+              const coverCls = 'mini-book-cover' + (typeKey === 'jurnal' ? ' mini-book-cover-jurnal' : ' mini-book-cover-artikel');
               return '<button type="button" class="mini-book" data-title="' + escapeHtml(d.title) + '">' +
                 '<span class="' + coverCls + '">' + escapeHtml(short) + '</span>' +
                 '<span class="mini-book-title">' + escapeHtml(d.title) + '</span>' +
@@ -5281,13 +5323,39 @@
       let activeFilter = 'Semua';
       let typeFilter = '';
       let savedPaths = new Set();
-      let savedFilter = false;
       let librarySaveBusy = false;
+      const LIBRARY_SAVED_FILTER = 'Disimpan';
       const LIBRARY_TOPIC_ORDER = [
         'basis data', 'jaringan komputer', 'kecerdasan buatan',
         'pemrograman berbasis platform', 'sains komputasi',
         'bahasa indonesia', 'bahasa inggris'
       ];
+      const LIBRARY_TOPIC_SET = new Set(LIBRARY_TOPIC_ORDER);
+      const LIBRARY_TYPE_ORDER = ['artikel', 'jurnal', 'skripsi'];
+      const LIBRARY_TOPIC_KEYWORDS = [
+        ['basis data', ['basis data', 'database', 'data base', 'dbms', 'sql', 'nosql', 'relational database', 'graph database', 'data mining']],
+        ['jaringan komputer', ['jaringan komputer', 'computer network', 'computer networks', 'network', 'networking', 'traffic', 'routing', 'communication', 'communications']],
+        ['kecerdasan buatan', ['kecerdasan buatan', 'artificial intelligence', 'machine learning', 'deep learning', 'neural', 'ai', 'ml', 'reinforcement learning']],
+        ['pemrograman berbasis platform', ['pemrograman berbasis platform', 'platform', 'mobile', 'android', 'web', 'software', 'application', 'programming', 'app development']],
+        ['sains komputasi', ['sains komputasi', 'computational', 'computation', 'quantum', 'simulation', 'algorithm', 'optimization', 'optimisation']],
+        ['bahasa indonesia', ['bahasa indonesia', 'indonesian language', 'indonesia language', 'sastra indonesia']],
+        ['bahasa inggris', ['bahasa inggris', 'english language', 'english', 'inggris']]
+      ];
+
+      function cleanLibraryLabel(s) {
+        return String(s || '').toLowerCase().replace(/[_-]+/g, ' ').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      }
+
+      function inferLibraryCourseTopic(typeKey, topicRaw, baseName) {
+        if (typeKey !== 'artikel' && typeKey !== 'jurnal') return '';
+        const topic = cleanLibraryLabel(topicRaw);
+        if (LIBRARY_TOPIC_SET.has(topic)) return topic;
+        const hay = ' ' + cleanLibraryLabel(topicRaw + ' ' + baseName) + ' ';
+        for (const [course, words] of LIBRARY_TOPIC_KEYWORDS) {
+          if (words.some((w) => w.indexOf(' ') === -1 ? hay.includes(' ' + w + ' ') : hay.includes(w))) return course;
+        }
+        return '';
+      }
 
       // Muat daftar file dari folder lokal (C:\Users\t\Downloads\library)
       function loadSavedPaths() {
@@ -5318,7 +5386,8 @@
             libraryFiles = (data.files || []).map((f) => {
               const parts = f.relativePath.split('/');
               const typeRaw = parts[0] || '';
-              const topicRaw = parts[1] || '';
+              const typeKey = cleanLibraryLabel(typeRaw) || 'artikel';
+              const topicRaw = parts.length > 2 ? (parts[1] || '') : '';
               const base = f.name.replace(/\.[^.]+$/, '');
               // ponytail: parse STYLE_LANG_YEAR -> style/lang/year/publisher/title terpisah, judul bersih
               let style = '';
@@ -5361,12 +5430,15 @@
                 }
               }
               if (!title) title = base.replace(/_+/g, ' ').trim();
-              const topic = topicRaw.replace(/_/g, ' ').trim();
-              const type = typeRaw === 'jurnal' ? 'Jurnal' : 'Artikel';
+              const rawTopic = cleanLibraryLabel(topicRaw);
+              const courseTopic = inferLibraryCourseTopic(typeKey, rawTopic, base);
+              const topic = courseTopic ? titleCaseTopic(courseTopic) : titleCaseTopic(rawTopic);
+              const type = titleCaseTopic(typeKey);
               const source = style;
               return {
                 isFile: true,
                 type,
+                typeKey,
                 title: title || base,
                 author: '',
                 publisher,
@@ -5375,7 +5447,8 @@
                 lang,
                 year,
                 topic,
-                keywords: [typeRaw, topic, style, lang, year].filter(Boolean),
+                courseTopic,
+                keywords: [typeRaw, typeKey, topic, courseTopic, style, lang, year].filter(Boolean),
                 fileUrl: '/library/files/' + parts.map(encodeURIComponent).join('/')
               };
             });
@@ -5404,62 +5477,56 @@
       })();
 
       function sortedTopics() {
-        const set = new Set(libraryFiles.map((d) => (d.topic || '').toLowerCase()).filter(Boolean));
-        const ordered = LIBRARY_TOPIC_ORDER.filter((t) => set.has(t));
+        return LIBRARY_TOPIC_ORDER.slice();
+      }
+
+      function sortedLibraryTypes() {
+        const set = new Set(libraryFiles.map((d) => d.typeKey).filter(Boolean));
+        if (typeFilter) set.add(typeFilter);
+        const ordered = LIBRARY_TYPE_ORDER.filter((t) => set.has(t) || t === 'artikel' || t === 'jurnal' || t === 'skripsi');
         const rest = Array.from(set).filter((t) => ordered.indexOf(t) === -1).sort();
         return ordered.concat(rest);
       }
 
       function renderLibraryFilters() {
         const topics = sortedTopics();
-        const chips = ['Semua'].concat(topics);
-        // Select filter tipe dipertahankan antar re-render agar pilihan user tidak hilang
-        const wrap = libraryFiltersEl.querySelector('.library-type-filter-wrap');
-        const prevType = wrap ? wrap.querySelector('select').value : '';
+        const chips = ['Semua'].concat(topics).concat([LIBRARY_SAVED_FILTER]);
+        // ponytail: angka chip mengikuti filter tipe aktif
+        const typeDocs = typeFilter ? libraryFiles.filter((d) => d.typeKey === typeFilter) : libraryFiles;
+        const isSavedDoc = (d) => d.isFile && savedPaths.has(decodeURIComponent(d.fileUrl.replace(/^\/library\/files\//, '')));
         libraryFiltersEl.innerHTML = chips.map((t) => {
           const count = t === 'Semua'
-            ? libraryFiles.length
-            : libraryFiles.filter((d) => (d.topic || '').toLowerCase() === t).length;
+            ? typeDocs.length
+            : t === LIBRARY_SAVED_FILTER
+              ? typeDocs.filter(isSavedDoc).length
+              : typeDocs.filter((d) => d.courseTopic === t).length;
           const cls = t === activeFilter ? 'library-filter-chip active' : 'library-filter-chip';
+          const label = t === 'Semua' || t === LIBRARY_SAVED_FILTER ? t : titleCaseTopic(t);
           return '<button type="button" class="' + cls + '" data-topic="' + escapeHtml(t) + '">' +
-            escapeHtml(t) + ' <span class="library-chip-count">' + count + '</span></button>';
+            escapeHtml(label) + ' <span class="library-chip-count">' + count + '</span></button>';
         }).join('');
         const tb = document.getElementById('library-total-badge');
         if (tb) tb.textContent = libraryFiles.length ? libraryFiles.length + ' file' : '';
-        let fwrap = wrap;
-        if (!fwrap) {
-          fwrap = document.createElement('span');
-          fwrap.className = 'library-type-filter-wrap';
-          fwrap.innerHTML =
-            '<svg class="lib-filter-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
-            '<path d="M3 3h10M3 3l5 6.5M13 3l-5 6.5M8 9.5V12.5"/>' +
-            '</svg>' +
-            '<select class="library-type-filter" id="library-type-filter">' +
-            '<option value="">Nothing</option>' +
-            '<option value="Jurnal">Jurnal</option>' +
-            '<option value="Artikel">Artikel</option>' +
-            '</select>';
-          fwrap.querySelector('select').addEventListener('change', (e) => {
-            typeFilter = e.target.value;
-            runLibraryDisplay();
-          });
-        }
-        libraryFiltersEl.appendChild(fwrap);
-        fwrap.querySelector('select').value = prevType;
-        const savedChip = document.createElement('button');
-        savedChip.type = 'button';
-        savedChip.className = 'library-filter-chip library-saved-chip' + (savedFilter ? ' active' : '');
-        savedChip.innerHTML = 'Disimpan <span class="library-chip-count">' + savedPaths.size + '</span>';
-        savedChip.addEventListener('click', () => {
-          savedFilter = !savedFilter;
+        const fwrap = document.createElement('span');
+        fwrap.className = 'library-type-filter-wrap';
+        fwrap.innerHTML =
+          '<svg class="lib-filter-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
+          '<path d="M3 3h10M3 3l5 6.5M13 3l-5 6.5M8 9.5V12.5"/>' +
+          '</svg>' +
+          '<select class="library-type-filter" id="library-type-filter">' +
+          '<option value="">nothing</option>' +
+          sortedLibraryTypes().map((t) => '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>').join('') +
+          '</select>';
+        fwrap.querySelector('select').addEventListener('change', (e) => {
+          typeFilter = e.target.value;
           renderLibraryFilters();
           runLibraryDisplay();
         });
-        libraryFiltersEl.appendChild(savedChip);
+        libraryFiltersEl.appendChild(fwrap);
+        fwrap.querySelector('select').value = typeFilter;
         libraryFiltersEl.querySelectorAll('.library-filter-chip[data-topic]').forEach((chip) => {
           chip.addEventListener('click', () => {
             activeFilter = chip.getAttribute('data-topic');
-            savedFilter = false;
             renderLibraryFilters();
             runLibraryDisplay();
           });
@@ -5470,14 +5537,13 @@
         let docs;
         if (activeFilter === 'Semua') {
           docs = libraryFiles.slice();
+        } else if (activeFilter === LIBRARY_SAVED_FILTER) {
+          docs = libraryFiles.filter((d) => d.isFile && savedPaths.has(decodeURIComponent(d.fileUrl.replace(/^\/library\/files\//, ''))));
         } else {
-          docs = libraryFiles.filter((d) => (d.topic || '').toLowerCase() === activeFilter.toLowerCase());
+          docs = libraryFiles.filter((d) => d.courseTopic === activeFilter);
         }
         if (typeFilter) {
-          docs = docs.filter((d) => d.type === typeFilter);
-        }
-        if (savedFilter) {
-          docs = docs.filter((d) => d.isFile && savedPaths.has(decodeURIComponent(d.fileUrl.replace(/^\/library\/files\//, ''))));
+          docs = docs.filter((d) => d.typeKey === typeFilter);
         }
         return docs;
       }
@@ -5502,7 +5568,7 @@
       const libraryUploadInput = document.getElementById('library-upload-input');
       const libraryUploadList = document.getElementById('library-upload-list');
       const libraryUploadBtn = document.getElementById('library-upload-btn');
-      const LIBRARY_UPLOAD_EXTS = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'gif', 'txt'];
+      const LIBRARY_UPLOAD_EXTS = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'gif', 'txt', 'mp4'];
       let libraryUploadRows = [];
       let libraryUploadBusy = false;
 
@@ -5512,9 +5578,6 @@
 
       function fillLibraryTopicOptions() {
         const topics = sortedTopics();
-        if (!topics.length) {
-          topics.push.apply(topics, LIBRARY_TOPIC_ORDER.map(titleCaseTopic));
-        }
         libraryUploadTopic.innerHTML = '<option value="" selected disabled>Pilih mata kuliah</option>' +
           topics.map((t) => '<option value="' + escapeHtml(t.toLowerCase()) + '">' + escapeHtml(titleCaseTopic(t)) + '</option>').join('');
       }
@@ -5694,10 +5757,11 @@
       const LIBRARY_TYPE_SYNONYMS = {
         artikel: ['artikel', 'makalah', 'art'],
         jurnal: ['jurnal', 'paper', 'penelitian'],
+        skripsi: ['skripsi', 'tesis', 'disertasi', 'thesis', 'dissertation'],
         buku: ['buku', 'ebook', 'e-book'],
         modul: ['modul', 'diktat']
       };
-      const LIBRARY_TYPE_SHORT = { artikel: 'ART', jurnal: 'JRN', buku: 'BUK', modul: 'MDL' };
+      const LIBRARY_TYPE_SHORT = { artikel: 'ART', jurnal: 'JRN', skripsi: 'SKR', buku: 'BUK', modul: 'MDL' };
 
       function normalizeText(s) {
         return String(s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -5745,7 +5809,7 @@
               if (tokScore > 0) matched++;
               score += tokScore;
             }
-            if (typeHits.includes(doc.type.toLowerCase())) score += 8;
+            if (typeHits.includes(doc.typeKey || doc.type.toLowerCase())) score += 8;
             // ponytail: butuh minimal 60% token bermakna match & skor tinggi agar tidak 3930 hasil
             const matchRatio = matched / effectiveTokens.length;
             if (matchRatio < 0.6) return { doc, score: 0, matched };
@@ -5770,10 +5834,11 @@
         if (!results.length) {
           const typeLabel = typeFilter ? typeFilter.toLowerCase() : '';
           if (!q) {
-            if (savedFilter) {
+            if (activeFilter === LIBRARY_SAVED_FILTER) {
               libraryResultsEl.innerHTML = '<p class="library-empty">Belum ada e-book yang disimpan. Klik ikon \u2399 pada e-book untuk menyimpannya.</p>';
             } else {
-              libraryResultsEl.innerHTML = '<p class="library-empty">Tidak ada file ' + typeLabel + ' pada kategori "' + escapeHtml(activeFilter) + '".</p>';
+              const categoryLabel = activeFilter === 'Semua' ? activeFilter : titleCaseTopic(activeFilter);
+              libraryResultsEl.innerHTML = '<p class="library-empty">Tidak ada file ' + typeLabel + ' pada kategori "' + escapeHtml(categoryLabel) + '".</p>';
             }
           } else {
             libraryResultsEl.innerHTML = '<p class="library-empty">Ebook tersebut tidak tersedia</p>';
@@ -5781,17 +5846,18 @@
           return;
         }
         const typeLabel = typeFilter ? typeFilter.toLowerCase() : '';
+        const activeLabel = activeFilter === 'Semua' || activeFilter === LIBRARY_SAVED_FILTER ? activeFilter : titleCaseTopic(activeFilter);
         const heading = q
-          ? results.length + ' hasil ditemukan untuk "' + escapeHtml(q) + '"' + (activeFilter !== 'Semua' ? ' (kategori ' + escapeHtml(activeFilter) + ')' : '') + (typeLabel ? ' (filter: ' + typeLabel + ')' : '')
-          : 'Menampilkan ' + results.length + ' file' + (typeLabel ? ' ' + typeLabel : '') + (activeFilter !== 'Semua' ? ' pada kategori "' + escapeHtml(activeFilter) + '"' : '') + ' dari total ' + (baseCount || libraryFiles.length) + ' file';
+          ? results.length + ' hasil ditemukan untuk "' + escapeHtml(q) + '"' + (activeFilter !== 'Semua' ? ' (kategori ' + escapeHtml(activeLabel) + ')' : '') + (typeLabel ? ' (filter: ' + typeLabel + ')' : '')
+          : 'Menampilkan ' + results.length + ' file' + (typeLabel ? ' ' + typeLabel : '') + (activeFilter !== 'Semua' ? ' pada kategori "' + escapeHtml(activeLabel) + '"' : '') + ' dari total ' + (baseCount || libraryFiles.length) + ' file';
         const itemsHtml = results.map((r) => {
           const d = r.doc || r;
           const isFile = !!d.isFile;
           if (!isFile) {
             return '<div class="library-item"><div class="library-item-body"><div class="library-item-title">' + escapeHtml(d.title) + '</div></div></div>';
           }
-          const typeKey = (d.type || '').toLowerCase();
-          const short = LIBRARY_TYPE_SHORT[typeKey] || 'PDF';
+          const typeKey = d.typeKey || (d.type || '').toLowerCase();
+          const short = LIBRARY_TYPE_SHORT[typeKey] || typeKey.slice(0, 3).toUpperCase() || 'PDF';
           const coverCls = 'library-item-cover' + (typeKey === 'jurnal' ? ' library-item-cover-jurnal' : ' library-item-cover-artikel');
           const coverHtml = '<div class="' + coverCls + '"><span class="cover-init">' + escapeHtml(short) + '</span></div>';
           const badges = [];
@@ -5799,7 +5865,7 @@
           if (d.lang) badges.push('<span class="lib-meta-badge lib-meta-lang lib-meta-lang-' + escapeHtml(d.lang.toLowerCase()) + '">' + escapeHtml(d.lang) + '</span>');
           if (d.year) badges.push('<span class="lib-meta-badge lib-meta-year">' + escapeHtml(d.year) + '</span>');
           if (d.topic) badges.push('<span class="lib-meta-badge lib-meta-topic">' + escapeHtml(d.topic) + '</span>');
-          // ponytail: kategori jurnal/artikel per folder (bukan publisher) - kanan agar tidak tertindih save
+          // ponytail: jenis dari folder pertama, bukan publisher
           if (d.type) badges.push('<span class="lib-meta-badge ' + (typeKey === 'jurnal' ? 'lib-meta-type' : 'lib-meta-type lib-meta-type-artikel') + '">' + escapeHtml(d.type) + '</span>');
           const metaHtml = badges.join('');
           const bodyHtml = '<div class="library-item-body"><div class="library-item-title">' + escapeHtml(d.title) + '</div><div class="library-item-meta">' + metaHtml + '</div></div>';
@@ -5808,8 +5874,9 @@
           const relEnc = encodeURIComponent(rel);
           const isSaved = savedPaths.has(rel);
           const saveBtn = '<button type="button" class="library-save-btn' + (isSaved ? ' saved' : '') + '" data-path="' + relEnc + '" title="' + (isSaved ? 'Hapus dari simpanan' : 'Simpan') + '" aria-pressed="' + isSaved + '">\u2399</button>';
-          const editBtn = isAdminUser() ? '<button type="button" class="library-item-act" data-act="rename" data-path="' + relEnc + '" title="Edit nama">Edit</button>' : '';
-          const delBtn = isAdminUser() ? '<button type="button" class="library-item-act danger" data-act="delete" data-path="' + relEnc + '" title="Hapus">Hapus</button>' : '';
+          const canManage = isAdminUser() && (typeKey === 'artikel' || typeKey === 'jurnal');
+          const editBtn = canManage ? '<button type="button" class="library-item-act" data-act="rename" data-path="' + relEnc + '" title="Edit nama">Edit</button>' : '';
+          const delBtn = canManage ? '<button type="button" class="library-item-act danger" data-act="delete" data-path="' + relEnc + '" title="Hapus">Hapus</button>' : '';
           const actions = (editBtn || delBtn) ? '<div class="library-item-actions">' + editBtn + delBtn + '</div>' : '';
           return '<div class="library-item">' + saveBtn + linkHtml + actions + '</div>';
         }).join('');
@@ -5883,7 +5950,6 @@
       const editLang = document.getElementById('library-edit-lang');
       function fillEditTopicOptions(current) {
         const topics = sortedTopics();
-        if (!topics.length) topics.push.apply(topics, LIBRARY_TOPIC_ORDER.map(titleCaseTopic));
         // ponytail: pastikan topic saat ini tetap ada di list walau tidak di LIBRARY_TOPIC_ORDER
         const curTitle = titleCaseTopic((current || '').replace(/_/g,' '));
         if (current && !topics.map(t=>t.toLowerCase()).includes(curTitle.toLowerCase())) topics.unshift(curTitle);
@@ -5911,7 +5977,7 @@
           if (!m) pendingEditLang = '';
         }
         if (!pendingEditLang) { const lm = base.match(/_(EN|ID)_/i); if (lm) pendingEditLang = lm[1].toUpperCase(); }
-        const typeLabel = parts[0] ? (parts[0] === 'jurnal' ? 'Jurnal' : 'Artikel') : '';
+        const typeLabel = parts[0] ? titleCaseTopic(cleanLibraryLabel(parts[0])) : '';
         const topicLabel = parts[1] ? parts[1].replace(/_/g,' ') : '';
         editMeta.innerHTML = (typeLabel ? '<span>' + escapeHtml(typeLabel) + '</span>' : '') + (topicLabel ? '<span>' + escapeHtml(topicLabel) + '</span>' : '') + '<span style="max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(realName) + '</span>';
         editCategory.value = pendingEditCategory;
@@ -6072,6 +6138,13 @@
           const iframe = document.createElement('iframe');
           iframe.src = 'https://view.officeapps.live.com/op/embed.aspx?src=' + encodeURIComponent(abs);
           readerFrame.appendChild(iframe);
+          // ponytail: embed Office butuh URL publik; fallback unduh selalu ada di toolbar
+        } else if (['mp4', 'webm'].indexOf(ext) >= 0) {
+          const vid = document.createElement('video');
+          vid.src = abs;
+          vid.controls = true;
+          vid.preload = 'metadata';
+          readerFrame.appendChild(vid);
         } else {
           window.open(abs, '_blank');
           return;

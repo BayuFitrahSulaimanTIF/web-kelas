@@ -4071,6 +4071,13 @@ font-family: 'VT323', 'Courier New', monospace;
   object-fit: contain;
   display: block;
 }
+.reader-frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #000;
+}
 
 /* ponytail: old cover/info styles removed — replaced by .library-item-cover/.library-item-body card layout */
 

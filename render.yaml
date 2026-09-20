@@ -29,6 +29,6 @@ services:
       - key: PASSWORD_PEPPER
         generateValue: true
       - key: CORS_ORIGIN
-        value: https://*.onrender.com,https://*.up.railway.app,http://localhost:3000
+        value: https://*.onrender.com,https://*.up.railway.app,https://*.vercel.app,http://localhost:3000
       - key: FRONTEND_BASE_URL
         sync: false
