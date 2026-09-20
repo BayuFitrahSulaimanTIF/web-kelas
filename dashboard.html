@@ -2277,7 +2277,7 @@
         function cacheSchedules(){ try{ localStorage.setItem('jadwalList', JSON.stringify(schedules)); }catch{} }
         function saveSchedules(){ cacheSchedules(); }
         function loadSchedules(){
-          fetch('/api/jadwal', { headers: authHeaders(), cache:'no-store' })
+          fetch(API_ORIGIN + '/api/jadwal', { headers: authHeaders(), cache:'no-store' })
             .then(r=> r.ok ? r.json() : Promise.reject())
             .then(arr=>{
               if(Array.isArray(arr) && arr.length){
@@ -2287,7 +2287,7 @@
                 // jika server masih kosong tapi ada cache lama (migrasi sekali)
                 // upload cache ke server (admin saja, tapi coba untuk semua)
                 schedules.forEach(s=>{
-                  fetch('/api/jadwal', { method:'POST', headers: Object.assign({ 'Content-Type':'application/json' }, authHeaders()), body: JSON.stringify(s) }).catch(()=>{});
+                  fetch(API_ORIGIN + '/api/jadwal', { method:'POST', headers: Object.assign({ 'Content-Type':'application/json' }, authHeaders()), body: JSON.stringify(s) }).catch(()=>{});
                 });
               } else {
                 schedules = Array.isArray(arr) ? arr : [];
@@ -2386,7 +2386,7 @@
           if(!day){ alert('Silakan pilih hari.'); return; }
           if(!room){ alert('Silakan pilih ruangan.'); return; }
           // ponytail: simpan ke server dulu, fallback ke lokal jika offline
-          fetch('/api/jadwal', { method:'POST', headers: Object.assign({ 'Content-Type':'application/json' }, authHeaders()), body: JSON.stringify({ courseName, startTime, endTime, day, room }) })
+          fetch(API_ORIGIN + '/api/jadwal', { method:'POST', headers: Object.assign({ 'Content-Type':'application/json' }, authHeaders()), body: JSON.stringify({ courseName, startTime, endTime, day, room }) })
             .then(r=> r.json().then(d=>({ok:r.ok,d})))
             .then(({ok,d})=>{
               if(!ok) throw new Error(d.message||'Gagal menyimpan');
@@ -2403,7 +2403,7 @@
         function deleteSchedule(id){
           if(!isJadwalAdmin()){ if(toast){ toast.textContent='Hanya ADMIN dapat menghapus jadwal'; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2500);} return; }
           if(!confirm('Apakah Anda yakin ingin menghapus jadwal ini?')) return;
-          fetch('/api/jadwal/'+id, { method:'DELETE', headers: authHeaders() })
+          fetch(API_ORIGIN + '/api/jadwal/'+id, { method:'DELETE', headers: authHeaders() })
             .then(r=> r.json().then(d=>({ok:r.ok,d})).catch(()=>({ok:r.ok,d:{}})))
             .then(({ok})=>{
               if(!ok) throw new Error('Gagal hapus');
@@ -2468,7 +2468,7 @@
           return;
         }
         listEl.innerHTML = '<p class="students-loading">Memuat daftar...</p>';
-        fetch('/api/users/students', { headers: authHeaders() })
+        fetch(API_ORIGIN + '/api/users/students', { headers: authHeaders() })
           .then(r => r.json())
           .then(data => {
             studentsCache = data.users || [];
@@ -5383,7 +5383,7 @@
       function loadLibraryFiles() {
         showLibrarySkeleton();
         const startedAt = Date.now();
-        return fetch('/api/library/files')
+        return fetch(API_ORIGIN + '/api/library/files')
           .then((r) => { if (!r.ok) throw new Error('API tidak tersedia'); return r.json(); })
           .then((data) => {
             libraryFiles = (data.files || []).map((f) => {
@@ -6090,7 +6090,7 @@
       const readerDownload = document.getElementById('reader-download');
 
       function openLibraryReader(doc) {
-        const abs = window.location.origin + doc.fileUrl;
+        const abs = API_ORIGIN + doc.fileUrl;
         const ext = (doc.fileUrl.split('.').pop() || '').toLowerCase();
         readerTitle.textContent = doc.title;
         readerOpenTab.href = abs;
