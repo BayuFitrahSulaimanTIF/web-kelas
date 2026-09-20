@@ -22,6 +22,27 @@
       var __extDash = 'https://cranium-feeble-encroach.ngrok-free.dev';
       var API_BASE = (window.location.protocol === 'file:' ? 'http://localhost:3000' : (__isVercelDash ? __extDash : window.location.origin)) + '/api';
       var LOGIN_URL = (window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin) + '/';
+      // ponytail: Vercel -> ngrok butuh header bypass di SEMUA fetch (tanpanya ngrok memberi halaman
+      // warning HTML -> .json() gagal -> profil/students/library kosong)
+      window.__EXT_API = (__isVercelDash && __extDash) ? __extDash : '';
+      (function(){
+        if (!window.__EXT_API || window.fetch.__ngrokPatched) return;
+        var rawFetch = window.fetch.bind(window);
+        window.fetch = function(url, opts){
+          try {
+            var u = (typeof url === 'string') ? url : '';
+            if (u.indexOf(window.__EXT_API) === 0) {
+              opts = opts || {};
+              var h = opts.headers;
+              if (h instanceof Headers) { if (!h.has('ngrok-skip-browser-warning')) h.set('ngrok-skip-browser-warning', '1'); }
+              else if (Array.isArray(h)) { h.push(['ngrok-skip-browser-warning', '1']); }
+              else { h = h || {}; if (!h['ngrok-skip-browser-warning']) h['ngrok-skip-browser-warning'] = '1'; opts.headers = h; }
+            }
+          } catch(e){}
+          return rawFetch(url, opts);
+        };
+        window.fetch.__ngrokPatched = true;
+      })();
 
       function redirectToLogin() { window.location.replace(LOGIN_URL); }
 
@@ -70,8 +91,8 @@
           var avSrc = user.avatar
             ? API_BASE.replace(/\/api$/, '') + '/uploads/avatars/' + encodeURIComponent(user.avatar)
             : initialsAvatarSrc(user);
-          if (avatarEl) avatarEl.src = avSrc;
-          if (avatarBigEl) avatarBigEl.src = avSrc;
+          if (avatarEl) { avatarEl.onerror = function(){ avatarEl.onerror = null; avatarEl.src = initialsAvatarSrc(user); }; avatarEl.src = avSrc; }
+          if (avatarBigEl) { avatarBigEl.onerror = function(){ avatarBigEl.onerror = null; avatarBigEl.src = initialsAvatarSrc(user); }; avatarBigEl.src = avSrc; }
         }
 
         var bioTextEl = document.getElementById('profile-bio-text');
@@ -2486,7 +2507,7 @@
       function studentAvatar(u) {
         // Tanpa foto profil: inisial (2 huruf depan nama depan & nama
         // belakang) sama seperti avatar aside, biar konsisten antar kartu.
-        return u.avatar ? '/uploads/avatars/' + encodeURIComponent(u.avatar) : window.initialsAvatarSrc(u);
+        return u.avatar ? (window.__EXT_API || '') + '/uploads/avatars/' + encodeURIComponent(u.avatar) : window.initialsAvatarSrc(u);
       }
       // Sinkronkan foto profil kartu students dengan avatar aside: setelah
       // user mengganti/menghapus foto profilnya, kartunya ikut berubah.
@@ -2864,7 +2885,7 @@
       document.getElementById('next-btn').addEventListener('click', () => { updateCarousel(currentSlide + 1); resetAutoScroll(); });
 
       // Info tiap banner (judul & deskripsi) dari server; admin bisa mengubahnya.
-      const ORIGIN = (window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin);
+      const ORIGIN = (window.location.protocol === 'file:' ? 'http://localhost:3000' : (window.__EXT_API || window.location.origin));
       let bannerInfos = [];
       async function loadBanners() {
         try {
@@ -2961,10 +2982,8 @@
       // ============================================================
       // FILE KELAS: MATERI (khusus admin) & PROJECT/TUGAS/UTS/UAS
       // ============================================================
-      // ponytail: Vercel -> ngrok (DB lokal), lokal/file -> origin
-      const __isVercel2 = window.location.hostname.includes('vercel.app');
-      const __ext2 = 'https://cranium-feeble-encroach.ngrok-free.dev';
-      const API_ORIGIN = (window.location.protocol === 'file:' ? 'http://localhost:3000' : (__isVercel2 ? __ext2 : window.location.origin));
+      // ponytail: Vercel -> ngrok (DB lokal), lokal/file -> origin (asal global dari blok auth guard)
+      const API_ORIGIN = (window.location.protocol === 'file:' ? 'http://localhost:3000' : (window.__EXT_API || window.location.origin));
       const FILES_API = API_ORIGIN + '/api/files';
       const USERS_API = API_ORIGIN + '/api/users';
       const MAX_UPLOAD = 1024 * 1024 * 1024; // 1 GB
@@ -5696,6 +5715,7 @@
         const xhr = new XMLHttpRequest();
         xhr.open('POST', API_ORIGIN + '/api/library/upload');
         xhr.setRequestHeader('Authorization', 'Bearer ' + getToken());
+        xhr.setRequestHeader('ngrok-skip-browser-warning', '1');
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) {
             row.progress = Math.round((e.loaded / e.total) * 100);
