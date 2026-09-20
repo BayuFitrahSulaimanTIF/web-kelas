@@ -17,9 +17,10 @@
     (function () {
       var TOKEN_KEY = 'auth_token';
       var USER_KEY = 'auth_user';
-      // Base relatif (diambil dari halaman yang menyajikan dashboard)
-      // agar tidak bergantung pada host/port hardcode (sumber "login 2x").
-      var API_BASE = (window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin) + '/api';
+      // ponytail: Vercel frontend pakai ngrok yang hidup (DB lokal) — jangan pakai origin vercel untuk API
+      var __isVercelDash = window.location.hostname.includes('vercel.app');
+      var __extDash = 'https://cranium-feeble-encroach.ngrok-free.dev';
+      var API_BASE = (window.location.protocol === 'file:' ? 'http://localhost:3000' : (__isVercelDash ? __extDash : window.location.origin)) + '/api';
       var LOGIN_URL = (window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin) + '/';
 
       function redirectToLogin() { window.location.replace(LOGIN_URL); }
@@ -2960,8 +2961,10 @@
       // ============================================================
       // FILE KELAS: MATERI (khusus admin) & PROJECT/TUGAS/UTS/UAS
       // ============================================================
-      // API relatif terhadap halaman (hindari host/port hardcode)
-      const API_ORIGIN = (window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin);
+      // ponytail: Vercel -> ngrok (DB lokal), lokal/file -> origin
+      const __isVercel2 = window.location.hostname.includes('vercel.app');
+      const __ext2 = 'https://cranium-feeble-encroach.ngrok-free.dev';
+      const API_ORIGIN = (window.location.protocol === 'file:' ? 'http://localhost:3000' : (__isVercel2 ? __ext2 : window.location.origin));
       const FILES_API = API_ORIGIN + '/api/files';
       const USERS_API = API_ORIGIN + '/api/users';
       const MAX_UPLOAD = 1024 * 1024 * 1024; // 1 GB

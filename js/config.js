@@ -31,7 +31,7 @@ window.APP_CONFIG = {
   APP_ORIGIN: window.location.origin,
   TIMEOUT_MS: 10000,
   ROUTES: {
-    dashboard: (__apiOrigin || window.location.origin) + '/dashboard.html',
+    dashboard: window.location.origin + '/dashboard.html',
     forgotPassword: '#',
     sso: '#'
   },
