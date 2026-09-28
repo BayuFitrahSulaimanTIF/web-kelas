@@ -1155,6 +1155,13 @@
       function hideMaintenanceNotice() {
         maintNotice.style.display = 'none';
       }
+      // ponytail: API_ORIGIN WAJIB dideklarasikan di paling atas blok ini.
+      // Sebelumnya `const API_ORIGIN` ada di tengah blok, padahal loadSchedules()
+      // / loadStudents() / loadLibraryFiles() sudah dipanggil saat blok dievaluasi
+      // -> ReferenceError (TDZ) yang MEMATIKAN seluruh blok: library kosong,
+      // students "Memuat daftar...", dan semua tombol (mis. "+" upload) tidak bind.
+      const API_ORIGIN = (window.location.protocol === 'file:' ? 'http://localhost:3000' : (window.__EXT_API || window.location.origin));
+
       const kelasList = [
         { id: 'A', name: 'Basis Data' },
         { id: 'B', name: 'Sains Komputasi' },
@@ -2892,7 +2899,7 @@
       document.getElementById('next-btn').addEventListener('click', () => { updateCarousel(currentSlide + 1); resetAutoScroll(); });
 
       // Info tiap banner (judul & deskripsi) dari server; admin bisa mengubahnya.
-      const ORIGIN = (window.location.protocol === 'file:' ? 'http://localhost:3000' : (window.__EXT_API || window.location.origin));
+      const ORIGIN = API_ORIGIN;
       let bannerInfos = [];
       async function loadBanners() {
         try {
@@ -2989,8 +2996,7 @@
       // ============================================================
       // FILE KELAS: MATERI (khusus admin) & PROJECT/TUGAS/UTS/UAS
       // ============================================================
-      // ponytail: Vercel -> ngrok (DB lokal), lokal/file -> origin (asal global dari blok auth guard)
-      const API_ORIGIN = (window.location.protocol === 'file:' ? 'http://localhost:3000' : (window.__EXT_API || window.location.origin));
+      // API_ORIGIN sudah dideklarasikan di atas blok (lihat catatan TDZ)
       const FILES_API = API_ORIGIN + '/api/files';
       const USERS_API = API_ORIGIN + '/api/users';
       const MAX_UPLOAD = 1024 * 1024 * 1024; // 1 GB
