@@ -22,18 +22,26 @@
       var __extDash = 'https://cranium-feeble-encroach.ngrok-free.dev';
       var API_BASE = (window.location.protocol === 'file:' ? 'http://localhost:3000' : (__isVercelDash ? __extDash : window.location.origin)) + '/api';
       var LOGIN_URL = (window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin) + '/';
-      // ponytail: Vercel -> ngrok butuh header bypass di SEMUA fetch (tanpanya ngrok memberi halaman
-      // warning HTML -> .json() gagal -> profil/students/library kosong)
+      // ponytail: ngrok free memberi halaman warning HTML ke browser tanpa header bypass
+      // (cookie TIDAK cukup — terbukti tetap interstitial) -> .json() gagal -> profil/students/library kosong.
+      // Berlaku di Vercel->ngrok MAUPUN dashboard di origin ngrok. Localhost tidak tersentuh.
       window.__EXT_API = (__isVercelDash && __extDash) ? __extDash : '';
-      // ponytail: samakan cookie bypass index.html agar buka dashboard ngrok langsung tetap dapat JSON
+      window.__NEED_NGROK_HDR = !!(window.__EXT_API || window.location.hostname.includes('ngrok-free'));
       try { if (window.location.hostname.includes('ngrok-free')) document.cookie = 'ngrok-skip-browser-warning=1;path=/;SameSite=Lax'; } catch(e){}
       (function(){
-        if (!window.__EXT_API || window.fetch.__ngrokPatched) return;
+        if (!window.__NEED_NGROK_HDR || window.fetch.__ngrokPatched) return;
         var rawFetch = window.fetch.bind(window);
+        function needsHdr(u) {
+          if (!u) return false;
+          if (window.__EXT_API && u.indexOf(window.__EXT_API) === 0) return true;
+          if (window.location.hostname.includes('ngrok-free') &&
+              (u.charAt(0) === '/' || u.indexOf(window.location.origin) === 0)) return true;
+          return false;
+        }
         window.fetch = function(url, opts){
           try {
             var u = (typeof url === 'string') ? url : '';
-            if (u.indexOf(window.__EXT_API) === 0) {
+            if (needsHdr(u)) {
               opts = opts || {};
               var h = opts.headers;
               if (h instanceof Headers) { if (!h.has('ngrok-skip-browser-warning')) h.set('ngrok-skip-browser-warning', '1'); }
