@@ -25,6 +25,8 @@
       // ponytail: Vercel -> ngrok butuh header bypass di SEMUA fetch (tanpanya ngrok memberi halaman
       // warning HTML -> .json() gagal -> profil/students/library kosong)
       window.__EXT_API = (__isVercelDash && __extDash) ? __extDash : '';
+      // ponytail: samakan cookie bypass index.html agar buka dashboard ngrok langsung tetap dapat JSON
+      try { if (window.location.hostname.includes('ngrok-free')) document.cookie = 'ngrok-skip-browser-warning=1;path=/;SameSite=Lax'; } catch(e){}
       (function(){
         if (!window.__EXT_API || window.fetch.__ngrokPatched) return;
         var rawFetch = window.fetch.bind(window);
