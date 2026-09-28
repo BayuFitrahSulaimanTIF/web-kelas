@@ -5,8 +5,8 @@
 // 2) Server lokal (/api/health via fetch)
 // Jika salah satu gagal → offline → tampilkan halaman putih
 // minimalis mirip Chrome "This site can't be reached"
-// (Image 2), bukan overlay gelap lama. Maintenance selalu
-// hapus watchdog/server/tampilan lama via server.js.
+// (Image 2), bukan overlay gelap lama. Process yang sudah
+// mati tidak dipelihara di server — supervisor.js yang menjaga.
 // ===================================================
 
 (function () {

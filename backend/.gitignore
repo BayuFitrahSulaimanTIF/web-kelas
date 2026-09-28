@@ -7,5 +7,6 @@ jadwal.json
 banners.json
 news.json
 .watchdog.pid
+.supervisor.pid
 watchdog.log
 server.log

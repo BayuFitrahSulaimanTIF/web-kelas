@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Press+Start+2P&family=VT323&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260909-jadwal">
+  <link rel="stylesheet" href="style.css?v=20260928-ngrok">
 </head>
 <body>
 
@@ -17,26 +17,23 @@
     (function () {
       var TOKEN_KEY = 'auth_token';
       var USER_KEY = 'auth_user';
-      // ponytail: Vercel frontend pakai ngrok yang hidup (DB lokal) — jangan pakai origin vercel untuk API
-      var __isVercelDash = window.location.hostname.includes('vercel.app');
-      var __extDash = 'https://cranium-feeble-encroach.ngrok-free.dev';
-      var API_BASE = (window.location.protocol === 'file:' ? 'http://localhost:3000' : (__isVercelDash ? __extDash : window.location.origin)) + '/api';
-      var LOGIN_URL = (window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin) + '/';
-      // ponytail: ngrok free memberi halaman warning HTML ke browser tanpa header bypass
-      // (cookie TIDAK cukup — terbukti tetap interstitial) -> .json() gagal -> profil/students/library kosong.
-      // Berlaku di Vercel->ngrok MAUPUN dashboard di origin ngrok. Localhost tidak tersentuh.
-      window.__EXT_API = (__isVercelDash && __extDash) ? __extDash : '';
-      window.__NEED_NGROK_HDR = !!(window.__EXT_API || window.location.hostname.includes('ngrok-free'));
-      try { if (window.location.hostname.includes('ngrok-free')) document.cookie = 'ngrok-skip-browser-warning=1;path=/;SameSite=Lax'; } catch(e){}
+      // ponytail: API selalu origin tempat halaman disajikan (localhost atau ngrok) — tanpa URL hardcode
+      var __sameOrigin = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
+      var API_BASE = __sameOrigin + '/api';
+      var LOGIN_URL = __sameOrigin + '/';
+      // ponytail: ngrok free menyuntik halaman warning HTML kalau request browser tidak pakai
+      // header bypass -> .json() gagal diam-diam -> profil/students/library kosong. Header ini
+      // yang bikin data muncul; cookie TIDAK cukup (sudah diuji). Localhost tidak tersentuh.
+      window.__EXT_API = '';
+      window.__NEED_NGROK_HDR = !!window.location.hostname.indexOf('ngrok');
+      try { if (window.__NEED_NGROK_HDR) document.cookie = 'ngrok-skip-browser-warning=1;path=/;SameSite=Lax'; } catch(e){}
       (function(){
         if (!window.__NEED_NGROK_HDR || window.fetch.__ngrokPatched) return;
         var rawFetch = window.fetch.bind(window);
         function needsHdr(u) {
           if (!u) return false;
-          if (window.__EXT_API && u.indexOf(window.__EXT_API) === 0) return true;
-          if (window.location.hostname.includes('ngrok-free') &&
-              (u.charAt(0) === '/' || u.indexOf(window.location.origin) === 0)) return true;
-          return false;
+          if (u.charAt(0) === '/' || u.indexOf(window.location.origin) === 0) return true;
+          return window.__EXT_API && u.indexOf(window.__EXT_API) === 0;
         }
         window.fetch = function(url, opts){
           try {
@@ -6677,6 +6674,6 @@
       })();
     })();
   </script>
-  <script src="js/connectivity.js?v=20260909-jadwal"></script>
+  <script src="js/connectivity.js?v=20260928-ngrok"></script>
 </body>
 </html>

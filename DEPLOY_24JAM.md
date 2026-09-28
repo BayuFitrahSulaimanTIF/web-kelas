@@ -31,7 +31,23 @@ fly deploy
 
 ## Catatan
 - Free tier Render/Railway filesystem ephemeral: file `backend/uploads/*` & `library/*` hilang saat restart. Untuk persist: tambah **Disk/Volume** 1GB di dashboard atau ganti ke S3/R2.
-- Ngrok tidak perlu lagi. Kalau tetap mau ngrok lokal, pakai `npm run tunnel:bg` (detached) tapi tetap butuh laptop nyala.
 - `DB_PORT` sudah diperbaiki (`backend/config/env.js` & `database.js`) agar baca `DB_PORT` dari hosting.
 
-Lokal tetap jalan: `npm start` di `backend/` seperti biasa.
+## Menjalankan lokal (server + ngrok)
+Satu perintah menjalankan semuanya secara tersembunyi:
+
+```powershell
+# sekali jalan, boleh tutup terminal
+powershell -ExecutionPolicy Bypass -File backend\start-web-kelas.ps1
+
+# sama saja
+cd backend; npm start
+```
+
+`backend/supervisor.js` menjaga `server.js` + `ngrok http 3000` tetap hidup
+(cek tiap 5 detik, start ulang otomatis, anti proses ganda lewat `.supervisor.pid`).
+Otomatis jalan saat Windows start lewat registry `HKCU\...\Run` → `WebKelas`.
+Log: `backend/supervisor.log`. Matikan: `taskkill /F /IM ngrok.exe` + tutup `supervisor.js`.
+
+Dulu ada `watchdog.js` + `watchdog.ps1` + `tunnel.js`; ketiganya dihapus karena
+saling men-spawn sehingga menghasilkan kubang proses.

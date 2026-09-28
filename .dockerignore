@@ -3,6 +3,7 @@ backend/node_modules
 backend/uploads
 backend/*.log
 backend/.watchdog*
+backend/.supervisor.pid
 backend/ngrok.log
 .git
 .gitignore
