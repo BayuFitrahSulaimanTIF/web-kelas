@@ -104,16 +104,55 @@ app.use('/uploads/avatars', express.static(AVATAR_DIR, {
 
 app.get('/api/library/files', (req, res) => {
   try {
+    const meta = readLibraryMeta();
     const files = walkLibrary(LIBRARY_DIR, LIBRARY_DIR, []);
-    res.json({ files });
+    // ponytail: style/tahun/bahasa disimpan terpisah (library_meta.json) supaya
+    // nama file tetap bersih judul saja — tidak ada prefix STYLE_LANG_YEAR.
+    res.json({
+      files: files.map((f) => {
+        const m = meta[f.relativePath];
+        return m ? Object.assign({}, f, m) : f;
+      })
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// ============ UPLOAD KE LIBRARY (kategori jurnal/artikel + mata kuliah) ============
+// ============ UPLOAD KE LIBRARY (kategori + style/tahun/bahasa) ============
 const LIBRARY_EXTENSIONS = new Set(['pdf', 'doc', 'docx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'gif', 'txt', 'mp4']);
+const LIBRARY_CATEGORIES = new Set(['jurnal', 'artikel', 'skripsi']);
+const LIBRARY_STYLES = new Set(['APA', 'SINTA', 'INTL', 'ARXIV', 'IEEE', 'OA']);
+const LIBRARY_YEARS = new Set(['2018','2019','2020','2021','2022','2023','2024','2025','2026']);
+const LIBRARY_LANGS = new Set(['EN', 'ID']);
 const MAX_LIBRARY_BYTES = 1024 * 1024 * 1024; // 1 GB per file
+
+// Metadata style/tahun/bahasa per path relatif. Dipisah dari nama file supaya
+//Judul di kartu tetap bersih (tanpa prefix format) dan tidak perlu rename file.
+const LIBRARY_META_FILE = path.join(__dirname, 'library_meta.json');
+function readLibraryMeta() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(LIBRARY_META_FILE, 'utf8'));
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+  } catch (e) {}
+  return {};
+}
+function writeLibraryMeta(data) {
+  fs.writeFileSync(LIBRARY_META_FILE, JSON.stringify(data, null, 2));
+}
+// 'Lainnya' / kosong = tidak ada style
+function cleanLibraryStyle(v) {
+  const s = String(v || '').trim().toUpperCase();
+  return LIBRARY_STYLES.has(s) ? s : '';
+}
+function cleanLibraryYear(v) {
+  const s = String(v || '').trim();
+  return LIBRARY_YEARS.has(s) ? s : '';
+}
+function cleanLibraryLang(v) {
+  const s = String(v || '').trim().toUpperCase();
+  return LIBRARY_LANGS.has(s) ? s : '';
+}
 
 function sanitizeLibraryTopic(raw) {
   return String(raw || '')
@@ -218,15 +257,35 @@ app.post('/api/library/upload', authenticate, requireLibraryAdmin, libraryUpload
       cleanupLibraryStaging(req);
       return res.status(400).json({ message: 'File wajib diunggah' });
     }
-    const category = String(req.body.category || '');
+    const category = String(req.body.category || '').trim().toLowerCase();
     const topic = sanitizeLibraryTopic(req.body.topic);
-    if (!['jurnal', 'artikel'].includes(category)) {
+    if (!LIBRARY_CATEGORIES.has(category)) {
       cleanupLibraryStaging(req);
-      return res.status(400).json({ message: 'Kategori wajib diisi: jurnal atau artikel' });
+      return res.status(400).json({ message: 'Kategori wajib diisi: jurnal, artikel, atau skripsi' });
     }
-    if (!topic) {
+    // Mata kuliah wajib untuk jurnal/artikel; skripsi boleh kosong (taruh di root skripsi/)
+    if (!topic && category !== 'skripsi') {
       cleanupLibraryStaging(req);
       return res.status(400).json({ message: 'Mata kuliah wajib diisi' });
+    }
+    const style = cleanLibraryStyle(req.body.style);
+    const year = cleanLibraryYear(req.body.year);
+    const lang = cleanLibraryLang(req.body.lang);
+    // tolak nilai yang tidak dikenal (bukan diam-diam diabaikan)
+    const rawStyle = String(req.body.style || '').trim().toUpperCase();
+    if (rawStyle && !style && rawStyle !== 'OTHER' && rawStyle !== 'LAINNYA') {
+      cleanupLibraryStaging(req);
+      return res.status(400).json({ message: 'Style harus: ' + Array.from(LIBRARY_STYLES).join(', ') });
+    }
+    const rawYear = String(req.body.year || '').trim();
+    if (rawYear && !year) {
+      cleanupLibraryStaging(req);
+      return res.status(400).json({ message: 'Tahun harus 2018-2026' });
+    }
+    const rawLang = String(req.body.lang || '').trim().toUpperCase();
+    if (rawLang && !lang) {
+      cleanupLibraryStaging(req);
+      return res.status(400).json({ message: 'Bahasa harus EN atau ID' });
     }
     for(const f of req.files){
       const ext = String(f.originalname||f.filename).split('.').pop().toLowerCase();
@@ -235,13 +294,18 @@ app.post('/api/library/upload', authenticate, requireLibraryAdmin, libraryUpload
     }
 
     try {
-      const targetDir = path.join(LIBRARY_DIR, category, topic);
+      const targetDir = topic ? path.join(LIBRARY_DIR, category, topic) : path.join(LIBRARY_DIR, category);
       fs.mkdirSync(targetDir, { recursive: true });
+      const meta = readLibraryMeta();
       const saved = req.files.map((f) => {
         const finalName = uniqueLibraryName(targetDir, f.filename);
         fs.renameSync(path.join(req.libraryStaging, f.filename), path.join(targetDir, finalName));
-        return { relativePath: category + '/' + topic + '/' + finalName, name: finalName, size: f.size };
+        const relative = (topic ? category + '/' + topic + '/' : category + '/') + finalName;
+        // nama file tetap apa adanya (judul bersih); style/tahun/bahasa di meta
+        if (style || year || lang) meta[relative] = { style, year, lang };
+        return { relativePath: relative, name: finalName, size: f.size, style, year, lang };
       });
+      if (Object.keys(meta).length) writeLibraryMeta(meta);
       cleanupLibraryStaging(req);
       res.json({ files: saved });
     } catch (moveError) {
@@ -252,21 +316,30 @@ app.post('/api/library/upload', authenticate, requireLibraryAdmin, libraryUpload
 });
 
 // ============ UBAH NAMA / HAPUS FILE LIBRARY (khusus admin) ============
-// Path relatif seperti 'jurnal/basis_data/file.pdf'; hanya mengizinkan
-// struktur kategori/topik/nama (tanpa subfolder lain & tanpa '..').
+// Path relatif seperti 'jurnal/basis_data/file.pdf' atau 'skripsi/file.pdf';
+// tanpa subfolder lain & tanpa '..'. 'skripsi' boleh tanpa mata kuliah.
 function resolveLibraryFile(relPath) {
   let decoded;
   try { decoded = decodeURIComponent(String(relPath || '')); } catch (e) { return null; }
   const parts = decoded.split('/');
-  if (parts.length !== 3) return null;
-  const [category, topic, name] = parts;
-  if (!['jurnal', 'artikel'].includes(category)) return null;
-  if (!topic || topic !== sanitizeLibraryTopic(topic)) return null;
+  if (parts.length < 2 || parts.length > 3) return null;
+  const category = parts[0];
+  if (!LIBRARY_CATEGORIES.has(category)) return null;
+  const hasTopic = parts.length === 3;
+  const topic = hasTopic ? parts[1] : '';
+  const name = hasTopic ? parts[2] : parts[1];
+  if (hasTopic && (!topic || topic !== sanitizeLibraryTopic(topic))) return null;
   if (!name || name.indexOf('..') !== -1) return null;
-  const full = path.resolve(LIBRARY_DIR, category, topic, name);
+  const full = path.resolve(LIBRARY_DIR, ...(hasTopic ? [category, topic, name] : [category, name]));
   const root = path.resolve(LIBRARY_DIR) + path.sep;
   if (full.indexOf(root) !== 0) return null;
-  return { category, topic, name, full, relative: category + '/' + topic + '/' + name };
+  return {
+    category,
+    topic: hasTopic ? topic : '',
+    name,
+    full,
+    relative: (hasTopic ? category + '/' + topic + '/' : category + '/') + name
+  };
 }
 
 app.patch('/api/library/files', authenticate, requireLibraryAdmin, (req, res) => {
@@ -291,7 +364,7 @@ app.patch('/api/library/files', authenticate, requireLibraryAdmin, (req, res) =>
   let newCategory = target.category;
   if (req.body.newCategory != null && String(req.body.newCategory).trim() !== '') {
     const c = String(req.body.newCategory).trim().toLowerCase();
-    if (!['jurnal', 'artikel'].includes(c)) return res.status(400).json({ message: 'Kategori harus jurnal atau artikel' });
+    if (!LIBRARY_CATEGORIES.has(c)) return res.status(400).json({ message: 'Kategori harus jurnal, artikel, atau skripsi' });
     newCategory = c;
   }
   let newTopic = target.topic;
@@ -300,74 +373,47 @@ app.patch('/api/library/files', authenticate, requireLibraryAdmin, (req, res) =>
     if (!t) return res.status(400).json({ message: 'Mata kuliah tidak valid' });
     newTopic = t;
   }
-  // ponytail: handle style/year/lang edit — reconstruct prefix STYLE_LANG_YEAR
-  let newStyleRaw = req.body.newStyle != null ? String(req.body.newStyle).trim().toUpperCase() : null;
-  let newYearRaw = req.body.newYear != null ? String(req.body.newYear).trim() : null;
-  let newLangRaw = req.body.newLang != null ? String(req.body.newLang).trim().toUpperCase() : null;
-  if (newStyleRaw === 'OTHER') newStyleRaw = '';
-  if (newStyleRaw !== null || newYearRaw !== null || newLangRaw !== null) {
-    const oldBase = target.name.replace(/\.[^.]+$/, '');
-    let oldStyle='', oldYear='', oldLang='';
-    let om = oldBase.match(/^([A-Z]{2,12})[_]+(EN|ID)[_]+((?:19|20)\d{2})[_]+.*$/i);
-    if (om) { oldStyle=om[1].toUpperCase(); oldLang=om[2].toUpperCase(); oldYear=om[3]; }
-    else {
-      om = oldBase.match(/^([A-Z]{2,12})[_]{2,}.*$/);
-      if (om) oldStyle=om[1].toUpperCase();
-      const om2 = oldBase.match(/^([A-Z]{2,12})[_]+((?:19|20)\d{2})[_]+.*$/);
-      if (om2) { oldStyle=om2[1].toUpperCase(); oldYear=om2[2]; }
-      const lm = oldBase.match(/_(EN|ID)_/i);
-      if (lm) oldLang=lm[1].toUpperCase();
-      const ym = oldBase.match(/\b((?:19|20)\d{2})\b/);
-      if (ym && !oldYear) oldYear=ym[1];
-    }
-    const finalStyle = newStyleRaw !== null ? newStyleRaw : oldStyle;
-    const finalYear = newYearRaw !== null ? newYearRaw : oldYear;
-    const finalLang = newLangRaw !== null ? newLangRaw : oldLang;
-    if (finalYear && !/^(2018|2019|2020|2021|2022|2023|2024|2025|2026)$/.test(finalYear)) return res.status(400).json({ message: 'Tahun harus 2018-2026' });
-    if (finalLang && !/^(EN|ID)$/i.test(finalLang)) return res.status(400).json({ message: 'Bahasa harus EN atau ID' });
-    if (finalStyle && !/^[A-Z]{2,12}$/.test(finalStyle)) return res.status(400).json({ message: 'Style tidak valid' });
-    // Extract title part dari newName (strip old prefix)
-    const baseForTitle = newName.replace(/\.[^.]+$/, '');
-    let titlePart = baseForTitle;
-    let tm = baseForTitle.match(/^([A-Z]{2,12})[_]+(EN|ID)[_]+((?:19|20)\d{2})[_]+(.*)$/i);
-    if (tm) titlePart = tm[4];
-    else {
-      tm = baseForTitle.match(/^([A-Z]{2,12})[_]{2,}(.*)$/);
-      if (tm) titlePart = tm[2];
-      else {
-        tm = baseForTitle.match(/^([A-Z]{2,12})[_]+((?:19|20)\d{2})[_]+(.*)$/);
-        if (tm) titlePart = tm[3];
-      }
-    }
-    // Build prefix baru
-    let prefix='';
-    if (finalStyle && finalLang && finalYear) prefix = `${finalStyle}_${finalLang}_${finalYear}_`;
-    else if (finalStyle && finalYear) prefix = `${finalStyle}_${finalYear}_`;
-    else if (finalStyle) prefix = `${finalStyle}__`;
-    else if (finalYear) prefix = `${finalYear}_`;
-    else if (finalLang && finalYear) prefix = `${finalLang}_${finalYear}_`;
-    else if (finalLang) prefix = `${finalLang}_`;
-    const ext = newName.slice(newName.lastIndexOf('.'));
-    const cleanTitle = titlePart.replace(/^_+/,'').replace(/_+/g,'_').trim() || titlePart;
-    if (prefix || finalStyle !== oldStyle || finalYear !== oldYear || finalLang !== oldLang) {
-      const reconstructed = prefix + cleanTitle + ext;
-      newName = sanitizeLibraryName(reconstructed);
-      dot = newName.lastIndexOf('.');
-      const newExt2 = newName.slice(dot+1).toLowerCase();
-      if (!LIBRARY_EXTENSIONS.has(newExt2)) return res.status(400).json({ message: 'Ekstensi tidak valid setelah update style/tahun/bahasa' });
-    }
+  // ponytail: style/tahun/bahasa disimpan di library_meta.json, BUKAN disisipkan
+  // ke nama file. Dulu prefix STYLE_LANG_YEAR ditulis ke nama file sehingga judul
+  // di kartu jadi "_EN_2020_FONDATIA_..."; sekarang nama file tetap judul saja.
+  const styleGiven = req.body.newStyle != null;
+  const yearGiven = req.body.newYear != null;
+  const langGiven = req.body.newLang != null;
+  const existingMeta = readLibraryMeta()[target.relative] || {};
+  let newStyle = cleanLibraryStyle(req.body.newStyle);
+  let newYear = cleanLibraryYear(req.body.newYear);
+  let newLang = cleanLibraryLang(req.body.newLang);
+  if (styleGiven && !newStyle && String(req.body.newStyle).trim().toUpperCase() !== '' &&
+      String(req.body.newStyle).trim().toUpperCase() !== 'OTHER' && String(req.body.newStyle).trim().toUpperCase() !== 'LAINNYA') {
+    return res.status(400).json({ message: 'Style harus: ' + Array.from(LIBRARY_STYLES).join(', ') });
   }
-  const targetDir = path.join(LIBRARY_DIR, newCategory, newTopic);
+  if (yearGiven && !newYear && String(req.body.newYear).trim() !== '') {
+    return res.status(400).json({ message: 'Tahun harus 2018-2026' });
+  }
+  if (langGiven && !newLang && String(req.body.newLang).trim() !== '') {
+    return res.status(400).json({ message: 'Bahasa harus EN atau ID' });
+  }
+  if (!styleGiven) newStyle = existingMeta.style || '';
+  if (!yearGiven) newYear = existingMeta.year || '';
+  if (!langGiven) newLang = existingMeta.lang || '';
+  if (newCategory !== 'skripsi' && !newTopic) {
+    return res.status(400).json({ message: 'Mata kuliah wajib diisi untuk jurnal dan artikel' });
+  }
+  const targetDir = newTopic ? path.join(LIBRARY_DIR, newCategory, newTopic) : path.join(LIBRARY_DIR, newCategory);
   fs.mkdirSync(targetDir, { recursive: true });
   const sameLocation = newCategory === target.category && newTopic === target.topic;
-  if (sameLocation && newName === target.name) {
+  const sameName = newName === target.name;
+  const meta = readLibraryMeta();
+  const prevMeta = meta[target.relative] || {};
+  const hasMeta = !!(newStyle || newYear || newLang);
+  if (sameLocation && sameName && !hasMeta && !prevMeta.style && !prevMeta.year && !prevMeta.lang) {
     return res.json({ message: 'Tidak ada perubahan', name: target.name, path: target.relative });
   }
-  let finalName;
-  if (sameLocation) finalName = uniqueLibraryName(path.dirname(target.full), newName);
-  else finalName = uniqueLibraryName(targetDir, newName);
+  // hanya ganti nama bila memang berubah; ubah style/tahun/bahasa tidak menyentuh nama file
+  const finalName = sameLocation ? (sameName ? target.name : uniqueLibraryName(path.dirname(target.full), newName))
+                                 : uniqueLibraryName(targetDir, newName);
   const newFull = path.join(targetDir, finalName);
-  const newRelative = newCategory + '/' + newTopic + '/' + finalName;
+  const newRelative = (newTopic ? newCategory + '/' + newTopic + '/' : newCategory + '/') + finalName;
   if (newFull !== target.full) {
     fs.renameSync(target.full, newFull);
     try {
@@ -381,7 +427,12 @@ app.patch('/api/library/files', authenticate, requireLibraryAdmin, (req, res) =>
       if (changed) writeSaved(saved);
     } catch (e) {}
   }
-  res.json({ message: 'E-book berhasil diperbarui', name: finalName, path: newRelative, oldPath: target.relative });
+  // meta dipindah mengikuti lokasi baru, lalu disimpan
+  if (meta[target.relative]) delete meta[target.relative];
+  if (hasMeta) meta[newRelative] = { style: newStyle, year: newYear, lang: newLang };
+  else delete meta[newRelative];
+  try { writeLibraryMeta(meta); } catch (e) {}
+  res.json({ message: 'E-book berhasil diperbarui', name: finalName, path: newRelative, oldPath: target.relative, style: newStyle, year: newYear, lang: newLang });
 });
 
 app.delete('/api/library/files', authenticate, requireLibraryAdmin, (req, res) => {
@@ -389,6 +440,10 @@ app.delete('/api/library/files', authenticate, requireLibraryAdmin, (req, res) =
   if (!target) return res.status(400).json({ message: 'Lokasi file tidak valid' });
   if (!fs.existsSync(target.full)) return res.status(404).json({ message: 'File tidak ditemukan' });
   fs.unlinkSync(target.full);
+  try {
+    const m = readLibraryMeta();
+    if (m[target.relative]) { delete m[target.relative]; writeLibraryMeta(m); }
+  } catch (e) {}
   res.json({ message: 'File berhasil dihapus' });
 });
 

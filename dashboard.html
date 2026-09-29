@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Press+Start+2P&family=VT323&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/images/logo/logo-unesa.png">
   <link rel="stylesheet" href="style.css?v=20260928-ngrok">
 </head>
 <body>
@@ -861,7 +862,7 @@
   </div>
 
   <!-- ======================== MODAL KONFIRMASI HAPUS ======================== -->
-  <div class="chat-media-overlay" id="chat-media-overlay" style="display:none;">  <button type="button" class="chat-media-close" id="chat-media-close" aria-label="Tutup">&times;</button>  <img class="chat-media-img" id="chat-media-img" alt="Preview gambar" style="display:none;">  <video class="chat-media-video" id="chat-media-video" controls preload="metadata" style="display:none; max-width:90vw; max-height:90vh;"></video></div>
+  <div class="chat-media-overlay" id="chat-media-overlay" style="display:none;">  <button type="button" class="chat-media-close" id="chat-media-close" aria-label="Tutup">&times;</button>  <img class="chat-media-img" id="chat-media-img" alt="Preview gambar" style="display:none;">  <video class="chat-media-video" id="chat-media-video" controls preload="metadata" style="display:none;"></video></div>
 
 
 
@@ -1005,14 +1006,54 @@
           <option value="" selected disabled>Pilih kategori</option>
           <option value="jurnal">Jurnal</option>
           <option value="artikel">Artikel</option>
+          <option value="skripsi">Skripsi</option>
         </select>
       </label>
       <label class="library-upload-field">
-        <span>Mata Kuliah <em>*</em></span>
+        <span id="library-upload-topic-label">Mata Kuliah <em>*</em></span>
         <select id="library-upload-topic">
           <option value="" selected disabled>Pilih mata kuliah</option>
         </select>
       </label>
+      <div class="library-upload-row3">
+        <label class="library-upload-field">
+          <span>Style</span>
+          <select id="library-upload-style">
+            <option value="">Tanpa style</option>
+            <option value="APA">APA</option>
+            <option value="SINTA">SINTA</option>
+            <option value="INTL">INTL</option>
+            <option value="ARXIV">ARXIV</option>
+            <option value="IEEE">IEEE</option>
+            <option value="OA">OA</option>
+            <option value="OTHER">Lainnya</option>
+          </select>
+        </label>
+        <label class="library-upload-field">
+          <span>Tahun</span>
+          <select id="library-upload-year">
+            <option value="">Tanpa tahun</option>
+            <option value="2018">2018</option>
+            <option value="2019">2019</option>
+            <option value="2020">2020</option>
+            <option value="2021">2021</option>
+            <option value="2022">2022</option>
+            <option value="2023">2023</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+          </select>
+        </label>
+        <label class="library-upload-field">
+          <span>Bahasa</span>
+          <select id="library-upload-lang">
+            <option value="">Tanpa bahasa</option>
+            <option value="EN">EN</option>
+            <option value="ID">ID</option>
+          </select>
+        </label>
+      </div>
+      <p class="library-upload-hint">Style, tahun, dan bahasa ditampilkan sebagai label di kartu e-book. Nama file tetap judul saja, tanpa kode format.</p>
       <p class="library-upload-error" id="library-upload-error" hidden></p>
       <label class="library-upload-zone" id="library-upload-zone">
         <input type="file" id="library-upload-input" multiple hidden>
@@ -1038,6 +1079,7 @@
           <select id="library-edit-category">
             <option value="jurnal">Jurnal</option>
             <option value="artikel">Artikel</option>
+            <option value="skripsi">Skripsi</option>
           </select>
         </label>
         <label class="library-edit-field">
@@ -1085,7 +1127,7 @@
         <label class="library-edit-field">
           <span>Nama file</span>
           <input type="text" id="library-edit-input" maxlength="200" placeholder="Nama file (tanpa .pdf juga bisa)">
-          <small style="font-size:0.72rem;color:#888">Ekstensi .pdf otomatis jika tidak diisi</small>
+          <small class="library-edit-hint">Ekstensi .pdf otomatis jika tidak diisi</small>
         </label>
         <p class="library-edit-error" id="library-edit-error"></p>
       </div>
@@ -1218,7 +1260,7 @@
         // Admin: sembunyikan isi KRS (bukan hapus) agar Home & nav tetap jalan
         // tanpa fitur/isi). Elemen di-dalamnya dihapus dari DOM; handler
         // dropdown di-guard agar tidak error saat mereferensi elemen null.
-        if (classKrsView) { classKrsView.innerHTML = '<div style="height:60vh;display:grid;place-items:center;color:#999;font:13px sans-serif">KRS Admin - kosong (logic tetap)</div>'; } // ponytail: jangan hapus DOM, cukup placeholder
+        if (classKrsView) { classKrsView.innerHTML = '<div class="krs-admin-placeholder">KRS Admin - kosong (logic tetap)</div>'; } // ponytail: jangan hapus DOM, cukup placeholder
       } else {
         // Student: tampilkan placeholder teks saja, sembunyikan grid kartu
         if (krsOverviewEl) krsOverviewEl.style.display = 'none';
@@ -5465,6 +5507,11 @@
                 }
               }
               if (!title) title = base.replace(/_+/g, ' ').trim();
+              // metadata dari server (library_meta.json) diprioritaskan;
+              // file lama tetap pakai prefix STYLE_LANG_YEAR di nama file
+              style = f.style || style;
+              year = f.year || year;
+              lang = f.lang || lang;
               const rawTopic = cleanLibraryLabel(topicRaw);
               const courseTopic = inferLibraryCourseTopic(typeKey, rawTopic, base);
               const topic = courseTopic ? titleCaseTopic(courseTopic) : titleCaseTopic(rawTopic);
@@ -5598,6 +5645,10 @@
       const libraryUploaderClose = document.getElementById('library-uploader-close');
       const libraryUploadCategory = document.getElementById('library-upload-category');
       const libraryUploadTopic = document.getElementById('library-upload-topic');
+      const libraryUploadStyle = document.getElementById('library-upload-style');
+      const libraryUploadYear = document.getElementById('library-upload-year');
+      const libraryUploadLang = document.getElementById('library-upload-lang');
+      const libraryUploadTopicLabel = document.getElementById('library-upload-topic-label');
       const libraryUploadError = document.getElementById('library-upload-error');
       const libraryUploadZone = document.getElementById('library-upload-zone');
       const libraryUploadInput = document.getElementById('library-upload-input');
@@ -5612,10 +5663,22 @@
       }
 
       function fillLibraryTopicOptions() {
+        const isSkripsi = libraryUploadCategory.value === 'skripsi';
         const topics = sortedTopics();
-        libraryUploadTopic.innerHTML = '<option value="" selected disabled>Pilih mata kuliah</option>' +
+        // ponytail: skripsi tidak wajib mata kuliah (folder skripsi bebas) -> ada opsi "Tanpa mata kuliah"
+        const first = isSkripsi
+          ? '<option value="">Tanpa mata kuliah</option>'
+          : '<option value="" selected disabled>Pilih mata kuliah</option>';
+        libraryUploadTopic.innerHTML = first +
           topics.map((t) => '<option value="' + escapeHtml(t.toLowerCase()) + '">' + escapeHtml(titleCaseTopic(t)) + '</option>').join('');
+        if (libraryUploadTopicLabel) {
+          libraryUploadTopicLabel.innerHTML = isSkripsi
+            ? 'Mata Kuliah <small>(opsional)</small>'
+            : 'Mata Kuliah <em>*</em>';
+        }
       }
+
+      libraryUploadCategory.addEventListener('change', fillLibraryTopicOptions);
 
       function openLibraryUploader() {
         fillLibraryTopicOptions();
@@ -5717,7 +5780,7 @@
         renderLibraryUploadList();
       });
 
-      function uploadLibraryRow(row, category, topic, onDone) {
+      function uploadLibraryRow(row, category, topic, extra, onDone) {
         row.status = 'uploading';
         row.progress = 0;
         renderLibraryUploadList();
@@ -5725,6 +5788,10 @@
         fd.append('file', row.file);
         fd.append('category', category);
         fd.append('topic', topic);
+        // style/tahun/bahasa disimpan terpisah (bukan prefix di nama file)
+        fd.append('style', (extra && extra.style) || '');
+        fd.append('year', (extra && extra.year) || '');
+        fd.append('lang', (extra && extra.lang) || '');
         const xhr = new XMLHttpRequest();
         xhr.open('POST', API_ORIGIN + '/api/library/upload');
         xhr.setRequestHeader('Authorization', 'Bearer ' + getToken());
@@ -5760,8 +5827,14 @@
         if (libraryUploadBusy) return;
         const category = libraryUploadCategory.value;
         const topic = libraryUploadTopic.value;
-        if (!category || !topic) {
-          libraryUploadError.textContent = 'Kategori dan mata kuliah wajib diisi.';
+        if (!category) {
+          libraryUploadError.textContent = 'Kategori wajib diisi.';
+          libraryUploadError.hidden = false;
+          return;
+        }
+        // matkul wajib untuk jurnal/artikel, opsional untuk skripsi
+        if (!topic && category !== 'skripsi') {
+          libraryUploadError.textContent = 'Mata kuliah wajib diisi untuk jurnal dan artikel.';
           libraryUploadError.hidden = false;
           return;
         }
@@ -5771,20 +5844,30 @@
           libraryUploadError.hidden = false;
           return;
         }
+        const extra = {
+          style: libraryUploadStyle ? libraryUploadStyle.value : '',
+          year: libraryUploadYear ? libraryUploadYear.value : '',
+          lang: libraryUploadLang ? libraryUploadLang.value : ''
+        };
         libraryUploadError.hidden = true;
         libraryUploadBusy = true;
         libraryUploadBtn.disabled = true;
         libraryUploadBtn.textContent = 'Mengunggah...';
         let done = 0;
+        let failed = 0;
         const total = pending.length;
         pending.forEach((row) => {
-          uploadLibraryRow(row, category, topic, () => {
+          uploadLibraryRow(row, category, topic, extra, () => {
+            if (row.status === 'error') failed++;
             done++;
             if (done === total) {
               libraryUploadBusy = false;
               libraryUploadBtn.disabled = false;
               libraryUploadBtn.textContent = 'Unggah ke Library';
-              activeFilter = 'Semua';
+              if (!failed) {
+                showLibraryToast(failed ? 'Sebagian file gagal diunggah.' : 'E-book berhasil diunggah.', !failed);
+                closeLibraryUploader();
+              }
               loadLibraryFiles();
             }
           });
@@ -5910,7 +5993,7 @@
           const relEnc = encodeURIComponent(rel);
           const isSaved = savedPaths.has(rel);
           const saveBtn = '<button type="button" class="library-save-btn' + (isSaved ? ' saved' : '') + '" data-path="' + relEnc + '" title="' + (isSaved ? 'Hapus dari simpanan' : 'Simpan') + '" aria-pressed="' + isSaved + '">\u2399</button>';
-          const canManage = isAdminUser() && (typeKey === 'artikel' || typeKey === 'jurnal');
+          const canManage = isAdminUser();
           const editBtn = canManage ? '<button type="button" class="library-item-act" data-act="rename" data-path="' + relEnc + '" title="Edit nama">Edit</button>' : '';
           const delBtn = canManage ? '<button type="button" class="library-item-act danger" data-act="delete" data-path="' + relEnc + '" title="Hapus">Hapus</button>' : '';
           const actions = (editBtn || delBtn) ? '<div class="library-item-actions">' + editBtn + delBtn + '</div>' : '';
@@ -6015,7 +6098,7 @@
         if (!pendingEditLang) { const lm = base.match(/_(EN|ID)_/i); if (lm) pendingEditLang = lm[1].toUpperCase(); }
         const typeLabel = parts[0] ? titleCaseTopic(cleanLibraryLabel(parts[0])) : '';
         const topicLabel = parts[1] ? parts[1].replace(/_/g,' ') : '';
-        editMeta.innerHTML = (typeLabel ? '<span>' + escapeHtml(typeLabel) + '</span>' : '') + (topicLabel ? '<span>' + escapeHtml(topicLabel) + '</span>' : '') + '<span style="max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(realName) + '</span>';
+        editMeta.innerHTML = (typeLabel ? '<span>' + escapeHtml(typeLabel) + '</span>' : '') + (topicLabel ? '<span>' + escapeHtml(topicLabel) + '</span>' : '') + '<span class="library-edit-meta-file">' + escapeHtml(realName) + '</span>';
         editCategory.value = pendingEditCategory;
         fillEditTopicOptions(pendingEditTopic);
         if (editStyle) { const hasStyle = Array.from(editStyle.options).some(o=>o.value===pendingEditStyle); editStyle.value = hasStyle ? pendingEditStyle : (pendingEditStyle ? 'OTHER' : ''); }
@@ -6045,7 +6128,7 @@
         const newLang = editLang ? editLang.value.trim() : '';
         if (!newName) { editError.textContent = 'Nama file tidak boleh kosong.'; return; }
         if (!newCategory) { editError.textContent = 'Jenis wajib dipilih.'; return; }
-        if (!newTopic) { editError.textContent = 'Mata kuliah wajib dipilih.'; return; }
+        if (!newTopic && newCategory !== 'skripsi') { editError.textContent = 'Mata kuliah wajib dipilih untuk jurnal dan artikel.'; return; }
         if (newYear && !/^(2018|2019|2020|2021|2022|2023|2024|2025|2026)$/.test(newYear)) { editError.textContent = 'Tahun harus 2018-2026.'; return; }
         if (newLang && !/^(EN|ID)$/i.test(newLang)) { editError.textContent = 'Bahasa harus EN atau ID.'; return; }
         const nameUnchanged = newName === pendingEditName;
@@ -6133,8 +6216,8 @@
         if (readerFrame._blobUrl) { try{ URL.revokeObjectURL(readerFrame._blobUrl); }catch{} readerFrame._blobUrl=null; }
         if (ext === 'pdf' || ext === 'txt') {
           const loading = document.createElement('div');
+          loading.className = 'reader-status';
           loading.textContent = 'Memuat dokumen...';
-          loading.style.cssText = 'padding:2rem;text-align:center;color:#666;font:14px Inter, sans-serif';
           readerFrame.appendChild(loading);
           fetch(abs, {headers: {'ngrok-skip-browser-warning':'1'}, cache:'no-store'})
             .then(r => {
@@ -6157,12 +6240,12 @@
               const iframe = document.createElement('iframe');
               iframe.src = url;
               iframe.setAttribute('allowfullscreen', 'true');
-              iframe.onerror=()=>{ loading.textContent='Gagal menampilkan PDF \u2014 coba Download.'; loading.style.color='#c0392b'; try{readerFrame.appendChild(loading);}catch{} };
+              iframe.onerror=()=>{ loading.textContent='Gagal menampilkan PDF \u2014 coba Download.'; loading.classList.add('reader-status-error'); try{readerFrame.appendChild(loading);}catch{} };
               readerFrame.appendChild(iframe);
             })
             .catch(err => {
               loading.textContent = 'Gagal memuat PDF: ' + (err.message||err) + ' \u2014 coba Download / Buka di tab baru.';
-              loading.style.color='#c0392b';
+              loading.classList.add('reader-status-error');
             });
           // ponytail: fetch blob agar ngrok header terkirim & bisa deteksi HTML rusak
         } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].indexOf(ext) >= 0) {

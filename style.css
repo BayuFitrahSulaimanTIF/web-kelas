@@ -3887,6 +3887,45 @@ font-family: 'VT323', 'Courier New', monospace;
   font-size: 0.8rem;
   margin: 0;
 }
+.library-upload-row3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+.library-upload-field small {
+  color: #777777;
+  font-size: 0.72rem;
+}
+.library-upload-hint {
+  color: #6b6b6b;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  margin: 0;
+}
+.library-edit-hint {
+  font-size: 0.72rem;
+  color: #888888;
+}
+.library-edit-meta-file {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-media-video {
+  max-width: 90vw;
+  max-height: 90vh;
+}
+.krs-admin-placeholder {
+  height: 60vh;
+  display: grid;
+  place-items: center;
+  color: #999999;
+  font: 13px sans-serif;
+}
+@media (max-width: 520px) {
+  .library-upload-row3 { grid-template-columns: 1fr; }
+}
 .library-upload-zone {
   display: flex;
   flex-direction: column;
@@ -4078,6 +4117,13 @@ font-family: 'VT323', 'Courier New', monospace;
   display: block;
   background: #000;
 }
+.reader-status {
+  padding: 2rem;
+  text-align: center;
+  color: #666666;
+  font: 14px Inter, sans-serif;
+}
+.reader-status-error { color: #c0392b; }
 
 /* ponytail: old cover/info styles removed — replaced by .library-item-cover/.library-item-body card layout */
 
