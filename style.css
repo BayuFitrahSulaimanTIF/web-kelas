@@ -3210,18 +3210,6 @@ font-family: 'VT323', 'Courier New', monospace;
   cursor: not-allowed;
 }
 
-/* ========== FOOTER ========== */footer {
-  background: #f0f0f0;
-  padding: 0.2rem 1rem;
-  text-align: center;
-  color: #555;
-  font-size: 0.65rem;
-  border-top: 1px solid #ddd;
-font-family: 'VT323', 'Courier New', monospace;
-  transition: transform 0.3s ease;
-}
-body.aside-open footer { transform: translateX(250px); }
-
 /* ========== LIBRARY (SEARCH E-BOOK) ========== */
 #page-library {
   display: flex;
