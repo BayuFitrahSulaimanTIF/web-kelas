@@ -34,92 +34,61 @@
       color: #16233e;
     }
 
+    /* Baris pertama dipakai penuh untuk ilustrasi, baris kedua setinggi teksnya.
+       Ilustrasi lalu mengikuti ukuran viewport apa pun tanpa tebak-tebakan pixel. */
     .maintenance {
       height: 100vh;
       height: 100dvh;
       width: 100%;
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      justify-items: center;
       align-items: center;
-      justify-content: center;
-      padding: clamp(20px, 4vw, 56px);
+      gap: clamp(14px, 2.4vh, 28px);
+      padding: clamp(18px, 3vw, 40px);
       text-align: center;
       overflow: hidden;
     }
 
-    .maintenance svg {
-      display: block;
-      width: 100%;
-      height: auto;
-      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
-        "Helvetica Neue", Arial, sans-serif;
-    }
-
     .maintenance-illustration {
-      /* Batas tinggi juga: lebar = tinggi * (1504/1046) agar seluruh halaman
-         (ilustrasi + teks) selalu muat di dalam viewport. */
-      width: min(830px, 80vw, calc(56vh * 1.437));
-      max-width: 830px;
-      height: auto;
-      margin-bottom: clamp(28px, 3vw, 40px);
+      height: 100%;
+      min-height: 0;
+      max-width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .maintenance-illustration img {
-      display: block;
-      width: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
       height: auto;
+      object-fit: contain;
+      pointer-events: none;
       -webkit-user-drag: none;
       user-select: none;
-      pointer-events: none;
+    }
+
+    .maintenance-text {
+      display: grid;
+      gap: clamp(6px, 0.8vh, 10px);
+      max-width: 100%;
     }
 
     .maintenance-title {
-      font-size: clamp(28px, 3vw, 46px);
+      font-size: clamp(20px, 2.4vw, 36px);
       font-weight: 700;
       line-height: 1.2;
       color: #16233e;
-      margin-bottom: clamp(12px, 1.4vw, 18px);
+      overflow-wrap: break-word;
     }
 
-    .maintenance-desc {
-      font-size: clamp(16px, 1.35vw, 21px);
-      font-weight: 400;
-      line-height: 1.7;
-      color: #5a6b87;
-      max-width: 650px;
-      margin: 0 auto;
-    }
-
-    .maintenance-extra {
-      font-size: clamp(16px, 1.3vw, 20px);
+    .maintenance-note {
+      font-size: clamp(14px, 1.2vw, 18px);
       font-weight: 500;
       line-height: 1.5;
-      color: #2c3e5e;
-      margin-top: clamp(24px, 2.6vw, 34px);
-    }
-
-    @media (max-width: 767px) {
-      .maintenance-illustration {
-        width: min(92vw, 560px, calc(56vh * 1.437));
-      }
-    }
-
-    @media (max-height: 780px) {
-      .maintenance-illustration {
-        width: min(830px, 80vw, calc(50vh * 1.437));
-        margin-bottom: clamp(18px, 2vw, 26px);
-      }
-      .maintenance-title {
-        font-size: clamp(24px, 2.4vw, 36px);
-        margin-bottom: clamp(10px, 1.2vw, 14px);
-      }
-      .maintenance-desc {
-        font-size: clamp(14px, 1.2vw, 19px);
-      }
-      .maintenance-extra {
-        font-size: clamp(14px, 1.15vw, 18px);
-        margin-top: clamp(16px, 2vw, 22px);
-      }
+      color: #5a6b87;
     }
   </style>
 </head>
@@ -130,9 +99,10 @@
       <img src="assets/images/503-maintenance.png" alt="Ilustrasi maintenance website">
     </div>
 
-    <h1 class="maintenance-title">Login SSO Sedang Dalam Perbaikan</h1>
-    <p class="maintenance-desc">Kami sedang melakukan pemeliharaan untuk meningkatkan kinerja dan pengalaman Anda.</p>
-    <p class="maintenance-extra">Silakan kembali beberapa saat lagi.</p>
+    <div class="maintenance-text">
+      <h1 class="maintenance-title">Login SSO Sedang Dalam Perbaikan</h1>
+      <p class="maintenance-note">Silakan kembali beberapa saat lagi.</p>
+    </div>
   </main>
 
   <script>
