@@ -56,10 +56,10 @@
     }
 
     .maintenance-illustration {
-      /* Batas tinggi juga: lebar = tinggi * (1504/1046) agar seluruh
-         halaman (ilustrasi + teks) selalu muat di dalam viewport. */
-      width: min(720px, 72vw, calc(48vh * 1.437));
-      max-width: 720px;
+      /* Batas tinggi juga: lebar = tinggi * (1504/1046) agar seluruh halaman
+         (ilustrasi + teks) selalu muat di dalam viewport. */
+      width: min(830px, 80vw, calc(56vh * 1.437));
+      max-width: 830px;
       height: auto;
       margin-bottom: clamp(28px, 3vw, 40px);
     }
@@ -98,23 +98,15 @@
       margin-top: clamp(24px, 2.6vw, 34px);
     }
 
-    .maintenance-closing {
-      font-size: clamp(14px, 1.15vw, 18px);
-      font-weight: 400;
-      line-height: 1.5;
-      color: #8b99b3;
-      margin-top: clamp(28px, 3vw, 40px);
-    }
-
     @media (max-width: 767px) {
       .maintenance-illustration {
-        width: min(90vw, 500px, calc(48vh * 1.437));
+        width: min(92vw, 560px, calc(56vh * 1.437));
       }
     }
 
     @media (max-height: 780px) {
       .maintenance-illustration {
-        width: min(720px, 72vw, calc(42vh * 1.437));
+        width: min(830px, 80vw, calc(50vh * 1.437));
         margin-bottom: clamp(18px, 2vw, 26px);
       }
       .maintenance-title {
@@ -127,10 +119,6 @@
       .maintenance-extra {
         font-size: clamp(14px, 1.15vw, 18px);
         margin-top: clamp(16px, 2vw, 22px);
-      }
-      .maintenance-closing {
-        font-size: clamp(13px, 1vw, 16px);
-        margin-top: clamp(18px, 2.2vw, 24px);
       }
     }
   </style>
@@ -145,7 +133,6 @@
     <h1 class="maintenance-title">Login SSO Sedang Dalam Perbaikan</h1>
     <p class="maintenance-desc">Kami sedang melakukan pemeliharaan untuk meningkatkan kinerja dan pengalaman Anda.</p>
     <p class="maintenance-extra">Silakan kembali beberapa saat lagi.</p>
-    <p class="maintenance-closing">Terima kasih atas kesabaran dan pengertian Anda.</p>
   </main>
 
   <script>
