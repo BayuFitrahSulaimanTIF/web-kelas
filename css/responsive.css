@@ -91,3 +91,121 @@
     margin-top: 10px;
   }
 }
+
+/* ================================================= */
+/* MOBILE - LOGIN: satu kolom (logo di atas, form di bawah) */
+/* Desktop/tablet besar tetap dua kolom seperti semula.  */
+/* ================================================= */
+
+@media (max-width: 768px) {
+  :root {
+    --shell-padding: 0px;
+    --hero-logo-size: 52px;
+  }
+
+  /* halaman boleh scroll vertikal di layar kecil */
+  body {
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: var(--color-white);
+  }
+
+  /* satu kolom: hero (logo) di atas, form di bawah.
+     rows "auto 1fr" menjaga baris logo tetap setinggi isinya,
+     bukan diregangkan memenuhi sisa tinggi layar. */
+  .auth-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    height: auto;
+    min-height: 100dvh;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* hero jadi baris logo saja + garis pembatas ke form */
+  .hero-panel {
+    height: auto;
+    background: var(--color-white);
+    border-bottom: 1px solid var(--color-border);
+    padding: 16px 20px;
+  }
+
+  .hero-image,
+  .hero-overlay,
+  .hero-copy {
+    display: none;
+  }
+
+  .hero-header {
+    position: static;
+  }
+
+  .brand-mark {
+    width: var(--hero-logo-size);
+    height: var(--hero-logo-size);
+  }
+
+  /* form mengalir dari atas, tidak terpusat di sisa tinggi layar */
+  .auth-panel {
+    height: auto;
+    place-items: start center;
+    background: var(--color-white);
+  }
+
+  .auth-panel::before {
+    display: none;
+  }
+
+  .login-container {
+    height: auto;
+    padding: 24px 20px 40px;
+    overflow: visible;
+    overscroll-behavior: auto;
+  }
+
+  .login-card {
+    max-height: none;
+    max-width: 460px;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  .login-heading {
+    margin-bottom: 18px;
+    text-align: left;
+  }
+
+  .login-heading h2 {
+    font-size: 24px;
+  }
+
+  .form-extra {
+    margin-bottom: 14px;
+  }
+
+  .divider {
+    margin: 16px 0 14px;
+  }
+
+  .login-footer {
+    margin-top: 16px;
+  }
+}
+
+/* layar sangat kecil: rapatkan lagi */
+@media (max-width: 380px) {
+  .hero-panel {
+    padding: 14px 16px;
+  }
+
+  .login-container {
+    padding: 20px 16px 32px;
+  }
+
+  .login-heading h2 {
+    font-size: 21px;
+  }
+}
