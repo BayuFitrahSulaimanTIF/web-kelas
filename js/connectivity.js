@@ -118,7 +118,7 @@
       + '<div style="max-width:650px;width:100%;margin:0 auto;text-align:left;box-sizing:border-box">'
       + '<div style="margin:0 0 28px 0;padding:0;box-sizing:border-box"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display:block"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#5f6368" stroke-width="1.4" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#5f6368" stroke-width="1.4" stroke-linejoin="round"/><circle cx="9" cy="13.5" r="1" fill="#5f6368"/><circle cx="15" cy="13.5" r="1" fill="#5f6368"/><path d="M8.5 16.5c1.2 1 4.8 1 6 0" stroke="#5f6368" stroke-width="1.4" stroke-linecap="round"/></svg></div>'
       + '<h1 style="margin:0 0 12px 0;padding:0;font:400 24px/1.25 Roboto,Arial,sans-serif;color:#202124;letter-spacing:0;box-sizing:border-box">This site can&rsquo;t be reached</h1>'
-      + '<p style="margin:0 0 16px 0;padding:0;font:400 14px/1.5 Roboto,Arial,sans-serif;color:#5f6368;box-sizing:border-box"><b style="font-weight:700;color:#202124">localhost:3000</b>&rsquo;s server IP address could not be found.</p>'
+      + '<p style="margin:0 0 16px 0;padding:0;font:400 14px/1.5 Roboto,Arial,sans-serif;color:#5f6368;box-sizing:border-box"><b style="font-weight:700;color:#202124">Web Kelas</b>&rsquo;s server IP address could not be found.</p>'
       + '<p style="margin:0 0 6px 0;padding:0;font:400 13px/1.5 Roboto,Arial,sans-serif;color:#202124;box-sizing:border-box">Try:</p>'
       + '<ul style="margin:0 0 14px 20px;padding:0 0 0 20px;color:#5f6368;font:400 13px/1.7 Roboto,Arial;list-style:disc outside;box-sizing:border-box">'
       + '<li style="margin:0;padding:0;list-style:disc outside;display:list-item;box-sizing:border-box">Checking the connection</li>'
@@ -126,12 +126,10 @@
       + '<li style="margin:0;padding:0;list-style:disc outside;display:list-item;box-sizing:border-box"><a href="#" onclick="return false" style="color:#1a73e8;text-decoration:none;font:inherit">Running Windows Network Diagnostics</a></li>'
       + '</ul>'
       + '<p id="offline-err" style="margin:0;padding:0;font:400 12px/1.5 Roboto,Arial,sans-serif;color:#5f6368;box-sizing:border-box">ERR_INTERNET_DISCONNECTED</p>'
-      + '<p style="margin:10px 0 0 0;padding:0;font:400 13px/1.5 Roboto,Arial,sans-serif;color:#5f6368;box-sizing:border-box">Web Kelas membutuhkan koneksi internet. Hubungkan internet lalu halaman akan memuat ulang otomatis.</p>'
       + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:28px;gap:12px;box-sizing:border-box">'
       + '<button id="offline-reload" type="button" style="background:#1a73e8;color:#fff;border:none;border-radius:4px;padding:9px 24px;font:500 14px Roboto,Arial,sans-serif;cursor:pointer;box-sizing:border-box;line-height:1">Reload</button>'
       + '<button id="offline-details" type="button" style="background:#fff;color:#1a73e8;border:1px solid #dadce0;border-radius:4px;padding:8px 16px;font:500 13px Roboto,Arial,sans-serif;cursor:pointer;box-sizing:border-box;line-height:1">Details</button>'
       + '</div>'
-      + '<p style="margin:16px 0 0 0;padding:0;font:400 12px/1.5 Roboto,Arial,sans-serif;color:#70757a;box-sizing:border-box">Mencoba menyambung ulang&hellip;</p>'
       + '</div>';
     const whiteStyle = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:72px 24px 24px;background:#fff;color:#202124;overflow:auto;text-align:left;box-sizing:border-box;font-family:Roboto,Arial,sans-serif';
     if (o) {
