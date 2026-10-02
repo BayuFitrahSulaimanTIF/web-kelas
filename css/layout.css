@@ -13,10 +13,6 @@ body {
   font-size: var(--font-size-base);
   color: var(--color-text);
   background: var(--color-page);
-  /* kolom flex: shell login turun tinggi, .site-footer menempel di bawah */
-  display: flex;
-  flex-direction: column;
-  gap: var(--shell-padding);
 }
 
 /* ================================================= */
@@ -27,7 +23,8 @@ body {
   display: grid;
   grid-template-columns: minmax(0, var(--hero-width)) minmax(0, var(--auth-width));
   width: 100%;
-  flex: 1 1 auto;
+  height: calc(100vh - (var(--shell-padding) * 2));
+  height: calc(100dvh - (var(--shell-padding) * 2));
   min-height: 0;
   overflow: hidden;
   background: var(--color-white);
