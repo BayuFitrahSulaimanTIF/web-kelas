@@ -3482,6 +3482,63 @@ font-family: 'VT323', 'Courier New', monospace;
   margin-bottom: 0;
 }
 
+/* ========== PAGINATOR LIBRARY (ribuan ebook) ========== */
+.library-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid #eeeeee;
+}
+.library-pager-info {
+  font-size: 0.82rem;
+  color: #555555;
+}
+.library-pager-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+.library-pager-btn {
+  font-family: inherit;
+  font-size: 0.82rem;
+  min-width: 2.1rem;
+  padding: 0.32rem 0.7rem;
+  border: 1px solid #d9d9d9;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #333333;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.library-pager-btn:hover:not(:disabled) {
+  border-color: #111111;
+  box-shadow: 0 2px 8px rgba(17, 17, 17, 0.08);
+}
+.library-pager-btn.active {
+  background: #111111;
+  border-color: #111111;
+  color: #ffffff;
+}
+.library-pager-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.library-pager-btn:focus-visible {
+  outline: none;
+  border-color: #b8960f;
+  box-shadow: 0 0 0 3px rgba(184, 150, 15, 0.18);
+}
+.library-pager-gap {
+  font-size: 0.82rem;
+  color: #888888;
+  padding: 0 0.15rem;
+}
+
 .library-item {
   display: flex;
   flex-direction: column;

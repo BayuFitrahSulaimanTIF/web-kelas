@@ -24,8 +24,18 @@ function walkLibrary(dir, base, out) {
   return out;
 }
 
+// Scan ribuan file tiap request itu berat (readdir + stat per file), jadi hasilnya
+// ditahan di memory. Segera dibuat ulang setelah upload/edit/delete lewat
+// invalidateLibraryCache(). Hasilnya dibaca saja, jangan dimutasi.
+let cachedFiles = null;
+
 function listLibraryFiles() {
-  return walkLibrary(LIBRARY_DIR, LIBRARY_DIR, []);
+  if (!cachedFiles) cachedFiles = walkLibrary(LIBRARY_DIR, LIBRARY_DIR, []);
+  return cachedFiles;
 }
 
-module.exports = { LIBRARY_DIR, walkLibrary, listLibraryFiles };
+function invalidateLibraryCache() {
+  cachedFiles = null;
+}
+
+module.exports = { LIBRARY_DIR, walkLibrary, listLibraryFiles, invalidateLibraryCache };

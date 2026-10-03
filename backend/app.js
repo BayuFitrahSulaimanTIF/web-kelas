@@ -6,6 +6,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const zlib = require('zlib');
 const cors = require('cors');
 const helmet = require('helmet');
 const multer = require('multer');
@@ -85,7 +86,7 @@ app.get('/dashboard', (req, res) => {
 });
 
 // ============ LIBRARY (folder e-book lokal) ============
-const { LIBRARY_DIR, walkLibrary } = require('./utils/libraryWalk');
+const { LIBRARY_DIR, listLibraryFiles, invalidateLibraryCache } = require('./utils/libraryWalk');
 
 app.use('/library/files', express.static(LIBRARY_DIR, {
   setHeaders: (res, p)=>{
@@ -105,15 +106,23 @@ app.use('/uploads/avatars', express.static(AVATAR_DIR, {
 app.get('/api/library/files', (req, res) => {
   try {
     const meta = readLibraryMeta();
-    const files = walkLibrary(LIBRARY_DIR, LIBRARY_DIR, []);
+    const files = listLibraryFiles();
     // ponytail: style/tahun/bahasa disimpan terpisah (library_meta.json) supaya
     // nama file tetap bersih judul saja — tidak ada prefix STYLE_LANG_YEAR.
-    res.json({
+    const payload = {
       files: files.map((f) => {
         const m = meta[f.relativePath];
         return m ? Object.assign({}, f, m) : f;
       })
-    });
+    };
+    // Ribuan ebook = JSON >1 MB; zlib bawaan Node memangkas ±85% tanpa dependency baru.
+    if (String(req.headers['accept-encoding'] || '').indexOf('gzip') !== -1) {
+      res.set('Content-Type', 'application/json; charset=utf-8');
+      res.set('Content-Encoding', 'gzip');
+      res.set('Vary', 'Accept-Encoding');
+      return res.send(zlib.gzipSync(JSON.stringify(payload)));
+    }
+    res.json(payload);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -307,6 +316,7 @@ app.post('/api/library/upload', authenticate, requireLibraryAdmin, libraryUpload
       });
       if (Object.keys(meta).length) writeLibraryMeta(meta);
       cleanupLibraryStaging(req);
+      invalidateLibraryCache();
       res.json({ files: saved });
     } catch (moveError) {
       cleanupLibraryStaging(req);
@@ -432,6 +442,7 @@ app.patch('/api/library/files', authenticate, requireLibraryAdmin, (req, res) =>
   if (hasMeta) meta[newRelative] = { style: newStyle, year: newYear, lang: newLang };
   else delete meta[newRelative];
   try { writeLibraryMeta(meta); } catch (e) {}
+  invalidateLibraryCache();
   res.json({ message: 'E-book berhasil diperbarui', name: finalName, path: newRelative, oldPath: target.relative, style: newStyle, year: newYear, lang: newLang });
 });
 
@@ -444,6 +455,7 @@ app.delete('/api/library/files', authenticate, requireLibraryAdmin, (req, res) =
     const m = readLibraryMeta();
     if (m[target.relative]) { delete m[target.relative]; writeLibraryMeta(m); }
   } catch (e) {}
+  invalidateLibraryCache();
   res.json({ message: 'File berhasil dihapus' });
 });
 

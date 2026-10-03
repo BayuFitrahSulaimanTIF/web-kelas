@@ -5400,6 +5400,10 @@
       let typeFilter = '';
       let savedPaths = new Set();
       let librarySaveBusy = false;
+      // Ribuan ebook: kartu dipecah per halaman supaya render tidak berat.
+      // Filter/pencarian tetap client-side seperti sebelumnya, jumlah ebook utuh.
+      let libraryPage = 1;
+      const LIBRARY_PAGE_SIZE = 60;
       const LIBRARY_SAVED_FILTER = 'Disimpan';
       const LIBRARY_TOPIC_ORDER = [
         'basis data', 'jaringan komputer', 'kecerdasan buatan',
@@ -5630,6 +5634,13 @@
       }
 
       function runLibraryDisplay() {
+        renderLibraryPage(1);
+      }
+
+      // Filter/pencarian selalu balik ke halaman 1; tombol pager memanggil
+      // renderLibraryPage(n) langsung supaya halaman tidak di-reset.
+      function renderLibraryPage(page) {
+        libraryPage = Math.max(1, Number(page) || 1);
         const q = libraryInput.value.trim();
         const base = currentFilteredDocs();
         const results = q ? librarySearch(q, base) : base;
@@ -5968,7 +5979,12 @@
         const heading = q
           ? results.length + ' hasil ditemukan untuk "' + escapeHtml(q) + '"' + (activeFilter !== 'Semua' ? ' (kategori ' + escapeHtml(activeLabel) + ')' : '') + (typeLabel ? ' (filter: ' + typeLabel + ')' : '')
           : 'Menampilkan ' + results.length + ' file' + (typeLabel ? ' ' + typeLabel : '') + (activeFilter !== 'Semua' ? ' pada kategori "' + escapeHtml(activeLabel) + '"' : '') + ' dari total ' + (baseCount || libraryFiles.length) + ' file';
-        const itemsHtml = results.map((r) => {
+        // ponytail: hanyaPotong yang dirender per halaman; filter & pencarian tetap di atas
+        const totalPages = Math.max(1, Math.ceil(results.length / LIBRARY_PAGE_SIZE));
+        if (libraryPage > totalPages) libraryPage = totalPages;
+        const pageStart = (libraryPage - 1) * LIBRARY_PAGE_SIZE;
+        const pageItems = results.slice(pageStart, pageStart + LIBRARY_PAGE_SIZE);
+        const itemsHtml = pageItems.map((r) => {
           const d = r.doc || r;
           const isFile = !!d.isFile;
           if (!isFile) {
@@ -6000,8 +6016,38 @@
         }).join('');
         libraryResultsEl.innerHTML =
           '<p class="library-count">' + heading + '</p>' +
-          '<div class="library-grid">' + itemsHtml + '</div>';
+          '<div class="library-grid">' + itemsHtml + '</div>' +
+          libraryPagerHtml(results.length, totalPages, pageStart, pageItems.length);
       }
+
+      // Pager: tampilkan halaman pertama, sekitar halaman aktif, dan halaman terakhir.
+      function libraryPagerHtml(total, totalPages, pageStart, shown) {
+        if (totalPages <= 1) return '';
+        const nav = [];
+        const button = (label, page, disabled, active) =>
+          '<button type="button" class="library-pager-btn' + (active ? ' active' : '') + '" data-lib-page="' + page + '"' + (disabled ? ' disabled' : '') + '>' + label + '</button>';
+        nav.push(button('Sebelumnya', libraryPage - 1, libraryPage === 1, false));
+        let shownPage = 0;
+        for (let p = 1; p <= totalPages; p++) {
+          if (p !== 1 && p !== totalPages && Math.abs(p - libraryPage) > 1) continue;
+          if (shownPage && p - shownPage > 1) nav.push('<span class="library-pager-gap">\u2026</span>');
+          nav.push(button(String(p), p, false, p === libraryPage));
+          shownPage = p;
+        }
+        nav.push(button('Berikutnya', libraryPage + 1, libraryPage === totalPages, false));
+        return '<div class="library-pager">' +
+          '<span class="library-pager-info">Menampilkan ' + (pageStart + 1) + '-' + (pageStart + shown) + ' dari ' + total + ' ebook</span>' +
+          '<div class="library-pager-nav">' + nav.join('') + '</div>' +
+          '</div>';
+      }
+
+      libraryResultsEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-lib-page]');
+        if (!btn || btn.disabled) return;
+        renderLibraryPage(btn.getAttribute('data-lib-page'));
+        libraryResultsEl.scrollTop = 0;
+        libraryResultsEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
 
       function runLibrarySearch() {
         runLibraryDisplay();
