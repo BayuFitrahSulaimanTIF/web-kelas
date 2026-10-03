@@ -3384,6 +3384,12 @@ font-family: 'VT323', 'Courier New', monospace;
   margin-left: auto;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  /* Slot lebar tetap: tombol « ‹ › » terkunci di ujung dan tidak bergeser
+     saat angka halaman di tengah muncul atau hilang. 496px = kasus terlebar
+     (5 nomor + 2 ellipsis + 4 tombol). Persentase aman karena lebar
+     .library-filters pasti (block penuh). */
+  min-width: min(496px, 100%);
 }
 .library-filter-chip {
 font-family: 'VT323', 'Courier New', monospace;
@@ -3495,12 +3501,16 @@ font-family: 'VT323', 'Courier New', monospace;
   align-items: center;
   justify-content: flex-end;
   gap: 0.5rem 0.9rem;
+  /* Penuh selebar slot tetap, lalu nav memakai space-between di dalamnya. */
+  width: 100%;
 }
 .library-pager-nav {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
+  width: 100%;
+  justify-content: space-between;
 }
 .library-pager-btn {
   font-family: inherit;
