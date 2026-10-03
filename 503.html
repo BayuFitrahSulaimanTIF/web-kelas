@@ -34,61 +34,84 @@
       color: #16233e;
     }
 
-    /* Baris pertama dipakai penuh untuk ilustrasi, baris kedua setinggi teksnya.
-       Ilustrasi lalu mengikuti ukuran viewport apa pun tanpa tebak-tebakan pixel. */
+    /* Satu kolom tengah: ilustrasi ukuran tetap yang wajar, teks rapi di bawahnya. */
     .maintenance {
       height: 100vh;
       height: 100dvh;
       width: 100%;
-      display: grid;
-      grid-template-rows: minmax(0, 1fr) auto;
-      justify-items: center;
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: clamp(14px, 2.4vh, 28px);
-      padding: clamp(18px, 3vw, 40px);
+      justify-content: center;
+      gap: clamp(18px, 2.6vh, 30px);
+      padding: clamp(20px, 4vw, 48px);
       text-align: center;
       overflow: hidden;
     }
 
     .maintenance-illustration {
-      height: 100%;
-      min-height: 0;
+      /* Batas 520px + rasio tinggi (1504/1046) supaya proporsional di layar pendek. */
+      width: min(520px, 72vw, 56vh);
       max-width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      flex: 0 0 auto;
     }
 
     .maintenance-illustration img {
-      max-width: 100%;
-      max-height: 100%;
-      width: auto;
+      display: block;
+      width: 100%;
       height: auto;
-      object-fit: contain;
       pointer-events: none;
       -webkit-user-drag: none;
       user-select: none;
     }
 
-    .maintenance-text {
-      display: grid;
-      gap: clamp(6px, 0.8vh, 10px);
-      max-width: 100%;
+    .maintenance-copy {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: clamp(10px, 1.6vh, 16px);
+      max-width: 560px;
+    }
+
+    .maintenance-code {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #5b6d8c;
+      background: #eef2f8;
+      border-radius: 999px;
+      padding: 6px 14px;
     }
 
     .maintenance-title {
-      font-size: clamp(20px, 2.4vw, 36px);
+      font-size: clamp(22px, 2.2vw, 32px);
       font-weight: 700;
-      line-height: 1.2;
+      line-height: 1.25;
       color: #16233e;
       overflow-wrap: break-word;
     }
 
-    .maintenance-note {
-      font-size: clamp(14px, 1.2vw, 18px);
-      font-weight: 500;
-      line-height: 1.5;
+    .maintenance-desc {
+      font-size: clamp(14px, 1.05vw, 16px);
+      font-weight: 400;
+      line-height: 1.65;
       color: #5a6b87;
+      max-width: 46ch;
+    }
+
+    .maintenance-note {
+      font-size: clamp(14px, 1.05vw, 16px);
+      font-weight: 600;
+      line-height: 1.5;
+      color: #2c3e5e;
+    }
+
+    .maintenance-hint {
+      font-size: 12.5px;
+      font-weight: 400;
+      line-height: 1.5;
+      color: #8a99b3;
     }
   </style>
 </head>
@@ -99,9 +122,12 @@
       <img src="assets/images/503-maintenance.png" alt="Ilustrasi maintenance website">
     </div>
 
-    <div class="maintenance-text">
+    <div class="maintenance-copy">
+      <p class="maintenance-code">503 Service Unavailable</p>
       <h1 class="maintenance-title">Login SSO Sedang Dalam Perbaikan</h1>
+      <p class="maintenance-desc">Kami sedang melakukan pemeliharaan terjadwal agar layanan kembali lebih stabil dan andal.</p>
       <p class="maintenance-note">Silakan kembali beberapa saat lagi.</p>
+      <p class="maintenance-hint">Jika halaman ini tetap tampil, muat ulang dengan Ctrl+Shift+R.</p>
     </div>
   </main>
 
