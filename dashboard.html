@@ -5609,6 +5609,12 @@
         });
         libraryFiltersEl.appendChild(fwrap);
         fwrap.querySelector('select').value = typeFilter;
+        // Slot pager dibuat terakhir di deretan kategori; isinya diisi setelah
+        // hasil difilter supaya bisa muncul di ruang kosong sisi kanan.
+        const pagerSlot = document.createElement('div');
+        pagerSlot.className = 'library-pager-slot';
+        pagerSlot.id = 'library-pager-slot';
+        libraryFiltersEl.appendChild(pagerSlot);
         libraryFiltersEl.querySelectorAll('.library-filter-chip[data-topic]').forEach((chip) => {
           chip.addEventListener('click', () => {
             activeFilter = chip.getAttribute('data-topic');
@@ -5956,6 +5962,8 @@
 
       function renderLibraryResults(results, query, baseCount) {
         const q = query.trim();
+        const pagerSlot = document.getElementById('library-pager-slot');
+        if (pagerSlot) pagerSlot.innerHTML = '';
         if (!libraryFiles.length) {
           libraryResultsEl.innerHTML = '<p class="library-empty">Belum ada file di folder library. Tambahkan file ke C:\\Users\\t\\Downloads\\library lalu muat ulang halaman.</p>';
           return;
@@ -6016,8 +6024,8 @@
         }).join('');
         libraryResultsEl.innerHTML =
           '<p class="library-count">' + heading + '</p>' +
-          '<div class="library-grid">' + itemsHtml + '</div>' +
-          libraryPagerHtml(results.length, totalPages, pageStart, pageItems.length);
+          '<div class="library-grid">' + itemsHtml + '</div>';
+        if (pagerSlot) pagerSlot.innerHTML = libraryPagerHtml(results.length, totalPages, pageStart, pageItems.length);
       }
 
       // Pager: tampilkan halaman pertama, sekitar halaman aktif, dan halaman terakhir.
@@ -6041,7 +6049,7 @@
           '</div>';
       }
 
-      libraryResultsEl.addEventListener('click', (e) => {
+      libraryFiltersEl.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-lib-page]');
         if (!btn || btn.disabled) return;
         renderLibraryPage(btn.getAttribute('data-lib-page'));
