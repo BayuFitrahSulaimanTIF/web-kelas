@@ -3523,6 +3523,15 @@ font-family: 'VT323', 'Courier New', monospace;
   border-color: #111111;
   color: #ffffff;
 }
+.library-pager-btn.step {
+  min-width: 2.3rem;
+  font-weight: 700;
+  border-color: #c9c9c9;
+  color: #111111;
+}
+.library-pager-btn.step:disabled {
+  color: #999999;
+}
 .library-pager-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
