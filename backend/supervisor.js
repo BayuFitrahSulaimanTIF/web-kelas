@@ -23,6 +23,7 @@ const LOG = path.join(DIR, 'supervisor.log');
 const PID_FILE = path.join(DIR, '.supervisor.pid');
 const LOG_MAX = 1024 * 1024;
 const CHECK_MS = 5000;
+let ngrokPid = 0;
 
 function log(msg) {
   try {
@@ -63,15 +64,47 @@ function isServerUp() {
   });
 }
 
-// ---------- cek ngrok ----------
-function isNgrokUp() {
+// ---------- cek ngrok lewat API lokal agent ----------
+// Penting: cek tunnel yang benar-benar hidup, bukan cuma ada prosesnya.
+//dashed Kalau cuma `tasklist`, proses ngrok yang menggantung dianggap hidup
+// sehingga tunnel baru terus ditambahkan -> ERR_NGROK_6030 (banyak endpoint
+// di satu domain tanpa pooling).
+function ngrokTunnels() {
+  return new Promise((resolve) => {
+    const req = http.get('http://127.0.0.1:4040/api/tunnels', (res) => {
+      let body = '';
+      res.on('data', (c) => { body += c; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(body).tunnels || []); } catch (e) { resolve([]); }
+      });
+    });
+    req.on('error', () => resolve([]));
+    req.setTimeout(2500, () => { try { req.destroy(); } catch (e) {} resolve([]); });
+  });
+}
+
+function ngrokPids() {
+  const pids = [];
   try {
     const out = execSync('tasklist /FI "IMAGENAME eq ngrok.exe" /FO CSV /NH', {
-      stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000
-    }).toString().toLowerCase();
-    return out.indexOf('ngrok.exe') >= 0;
-  } catch (e) {
-    return false;
+      stdio: ['ignore', 'pipe', 'ignore'], timeout: 4000
+    }).toString();
+    for (const line of out.split(/\r?\n/)) {
+      const m = line.match(/"([^"]*)",\s*"(\d+)"/);
+      if (m) pids.push(Number(m[2]));
+    }
+  } catch (e) {}
+  return pids;
+}
+
+// Bunuh ngrok.exe yang bukan milik kita (manual user, sisa tunnel lama).
+function killStrayNgrok() {
+  for (const pid of ngrokPids()) {
+    if (pid === ngrokPid) continue;
+    try {
+      execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore', timeout: 4000 });
+      log('bunuh ngrok liar pid=' + pid);
+    } catch (e) {}
   }
 }
 
@@ -97,10 +130,12 @@ function startServer() {
 }
 
 function startNgrok() {
+  killStrayNgrok();
   const child = spawn(findNgrok(), ['http', '3000'], {
     cwd: DIR, detached: true, stdio: 'ignore', windowsHide: true
   });
   child.unref();
+  ngrokPid = child.pid;
   log('ngrok start pid=' + child.pid);
 }
 
@@ -109,9 +144,14 @@ async function tick() {
   if (!running) return;
   try {
     if (await isServerUp()) {
-      if (!isNgrokUp()) {
-        // server hidup tapi tunnel mati -> ARCHIPELAGUS tersendat
+      const tunnels = await ngrokTunnels();
+      if (!tunnels.length) {
+        // tunnel hidup? tidak -> ARCHIPELAGUS tersendat
         startNgrok();
+      } else {
+        // tunnel ada tapi proses ngrok proliferasi -> rapikan jadi satu
+        const pids = ngrokPids();
+        if (pids.length > 1) killStrayNgrok();
       }
     } else {
       // port 3000 masih dipegang proses mati? diamkan lalu start
@@ -123,7 +163,7 @@ async function tick() {
       startServer();
       // tunggu server siap sebelum/lama-lama cek tunnel
       await new Promise((r) => setTimeout(r, 3000));
-      if (!isNgrokUp()) startNgrok();
+      if (!(await ngrokTunnels()).length) startNgrok();
     }
   } catch (e) {
     log('tick err: ' + (e.message || e));
