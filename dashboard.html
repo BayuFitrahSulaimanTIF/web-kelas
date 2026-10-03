@@ -6033,23 +6033,30 @@
       // Pager: << / < mundur, nomor halaman, lalu > / >> maju.
       function libraryPagerHtml(totalPages) {
         if (totalPages <= 1) return '';
-        const nav = [];
         const button = (label, page, disabled, active, title, step) =>
           '<button type="button" class="library-pager-btn' + (step ? ' step' : '') + (active ? ' active' : '') + '" data-lib-page="' + page + '"' +
           (disabled ? ' disabled' : '') + (title ? ' title="' + title + '" aria-label="' + title + '"' : '') + '>' + label + '</button>';
         // ponytail: << dan >> lompat ke ujung, < dan > geser satu halaman
-        nav.push(button('\u00ab', 1, libraryPage === 1, false, 'Halaman pertama', true));
-        nav.push(button('\u2039', libraryPage - 1, libraryPage === 1, false, 'Halaman sebelumnya', true));
+        const head = button('\u00ab', 1, libraryPage === 1, false, 'Halaman pertama', true) +
+                     button('\u2039', libraryPage - 1, libraryPage === 1, false, 'Halaman sebelumnya', true);
+        const tail = button('\u203a', libraryPage + 1, libraryPage === totalPages, false, 'Halaman berikutnya', true) +
+                     button('\u00bb', totalPages, libraryPage === totalPages, false, 'Halaman terakhir', true);
+        // Nomor halaman dikelompokkan dengan lebar tetap:«‹ ›» jadi diam di
+        // tempatnya walau angka di tengah berubah. Naikkan 310px kalau jumlah
+        // halaman tembus 3 angka.
+        const pages = [];
         let shownPage = 0;
         for (let p = 1; p <= totalPages; p++) {
           if (p !== 1 && p !== totalPages && Math.abs(p - libraryPage) > 1) continue;
-          if (shownPage && p - shownPage > 1) nav.push('<span class="library-pager-gap">\u2026</span>');
-          nav.push(button(String(p), p, false, p === libraryPage, 'Halaman ' + p, false));
+          if (shownPage && p - shownPage > 1) pages.push('<span class="library-pager-gap">\u2026</span>');
+          pages.push(button(String(p), p, false, p === libraryPage, 'Halaman ' + p, false));
           shownPage = p;
         }
-        nav.push(button('\u203a', libraryPage + 1, libraryPage === totalPages, false, 'Halaman berikutnya', true));
-        nav.push(button('\u00bb', totalPages, libraryPage === totalPages, false, 'Halaman terakhir', true));
-        return '<div class="library-pager"><div class="library-pager-nav">' + nav.join('') + '</div></div>';
+        return '<div class="library-pager"><div class="library-pager-nav">' +
+          '<span class="library-pager-edge">' + head + '</span>' +
+          '<span class="library-pager-pages">' + pages.join('') + '</span>' +
+          '<span class="library-pager-edge">' + tail + '</span>' +
+          '</div></div>';
       }
 
       libraryFiltersEl.addEventListener('click', (e) => {
