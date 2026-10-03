@@ -3497,53 +3497,26 @@ font-family: 'VT323', 'Courier New', monospace;
 /* ========== PAGINATOR LIBRARY (ribuan ebook) ========== */
 .library-pager {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.5rem 0.9rem;
-  /* Penuh selebar slot tetap. */
-  width: 100%;
 }
 .library-pager-nav {
-  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
-  width: 100%;
-  /* Nomor halaman duduk di ruang tengah; « ‹ dan › » dipatok absolute di
-     ujung, jadi jaraknya tetap rapat dan tidak bergeser saat angka berubah. */
-  padding: 0 104px;
-  justify-content: center;
 }
-.library-pager-edge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
+/* Ellipsis tersembunyi tetap memakai ruangnya agar lebar pager tidak berubah. */
+.library-pager-gap.is-hidden {
+  visibility: hidden;
 }
-.library-pager-edge:first-child {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.library-pager-edge:last-child {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.library-pager-pages {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-}
+
 .library-pager-btn {
   font-family: inherit;
   font-size: 0.82rem;
-  min-width: 2.1rem;
+  /* 2.6rem cukup untuk 2 digit + padding, jadi semua pil sama lebar dan
+     pager tidak bergeser saat nomor halaman berubah. */
+  min-width: 2.6rem;
   padding: 0.32rem 0.7rem;
   border: 1px solid #d9d9d9;
   border-radius: 999px;
@@ -3562,7 +3535,7 @@ font-family: 'VT323', 'Courier New', monospace;
   color: #ffffff;
 }
 .library-pager-btn.step {
-  min-width: 2.3rem;
+  min-width: 2.6rem;
   font-weight: 700;
   border-color: #c9c9c9;
   color: #111111;

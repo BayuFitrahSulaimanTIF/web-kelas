@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Press+Start+2P&family=VT323&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/images/logo/logo-unesa.png">
-  <link rel="stylesheet" href="style.css?v=20260928-ngrok">
+  <link rel="stylesheet" href="style.css?v=20261003-pager">
 </head>
 <body>
 
@@ -6030,33 +6030,33 @@
         if (pagerSlot) pagerSlot.innerHTML = libraryPagerHtml(totalPages);
       }
 
-      // Pager: << / < mundur, nomor halaman, lalu > / >> maju.
+      // Pager: «‹ mundur, nomor halaman, lalu ›» maju.
       function libraryPagerHtml(totalPages) {
         if (totalPages <= 1) return '';
         const button = (label, page, disabled, active, title, step) =>
           '<button type="button" class="library-pager-btn' + (step ? ' step' : '') + (active ? ' active' : '') + '" data-lib-page="' + page + '"' +
           (disabled ? ' disabled' : '') + (title ? ' title="' + title + '" aria-label="' + title + '"' : '') + '>' + label + '</button>';
-        // ponytail: << dan >> lompat ke ujung, < dan > geser satu halaman
+        // ponytail: « dan » lompat ke ujung, ‹ dan › geser satu halaman
         const head = button('\u00ab', 1, libraryPage === 1, false, 'Halaman pertama', true) +
                      button('\u2039', libraryPage - 1, libraryPage === 1, false, 'Halaman sebelumnya', true);
         const tail = button('\u203a', libraryPage + 1, libraryPage === totalPages, false, 'Halaman berikutnya', true) +
                      button('\u00bb', totalPages, libraryPage === totalPages, false, 'Halaman terakhir', true);
-        // Nomor halaman dikelompokkan dengan lebar tetap:«‹ ›» jadi diam di
-        // tempatnya walau angka di tengah berubah. Naikkan 310px kalau jumlah
-        // halaman tembus 3 angka.
-        const pages = [];
-        let shownPage = 0;
-        for (let p = 1; p <= totalPages; p++) {
-          if (p !== 1 && p !== totalPages && Math.abs(p - libraryPage) > 1) continue;
-          if (shownPage && p - shownPage > 1) pages.push('<span class="library-pager-gap">\u2026</span>');
-          pages.push(button(String(p), p, false, p === libraryPage, 'Halaman ' + p, false));
-          shownPage = p;
+        const gap = (hidden) => '<span class="library-pager-gap' + (hidden ? ' is-hidden' : '') + '">\u2026</span>';
+        const pageBtn = (p) => button(String(p), p, false, p === libraryPage, 'Halaman ' + p, false);
+        let middle;
+        if (totalPages <= 6) {
+          middle = Array.from({ length: totalPages }, (_, i) => pageBtn(i + 1)).join('');
+        } else {
+          // Selalu 7 slot: 1, ellipsis, 3 halaman sekitar aktif, ellipsis, terakhir.
+          // Ellipsis yang tak perlu tetap dirender (disembunyikan) supaya lebar
+          // pager konstan — «‹›» diam di tempatnya dan jaraknya tetap rapat.
+          const start = Math.min(Math.max(libraryPage - 1, 2), totalPages - 3);
+          const win = [start, start + 1, start + 2];
+          middle = pageBtn(1) + gap(win[0] <= 2) +
+                   win.map(pageBtn).join('') + gap(win[2] >= totalPages - 1) +
+                   pageBtn(totalPages);
         }
-        return '<div class="library-pager"><div class="library-pager-nav">' +
-          '<span class="library-pager-edge">' + head + '</span>' +
-          '<span class="library-pager-pages">' + pages.join('') + '</span>' +
-          '<span class="library-pager-edge">' + tail + '</span>' +
-          '</div></div>';
+        return '<div class="library-pager"><div class="library-pager-nav">' + head + middle + tail + '</div></div>';
       }
 
       libraryFiltersEl.addEventListener('click', (e) => {
