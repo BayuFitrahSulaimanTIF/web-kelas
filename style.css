@@ -3386,10 +3386,10 @@ font-family: 'VT323', 'Courier New', monospace;
   align-items: center;
   justify-content: flex-end;
   /* Slot lebar tetap: tombol « ‹ › » terkunci di ujung dan tidak bergeser
-     saat angka halaman di tengah muncul atau hilang. 520px = kasus terlebar
-     (5 nomor + 2 ellipsis + 4 tombol). Persentase aman karena lebar
-     .library-filters pasti (block penuh). */
-  min-width: min(520px, 100%);
+     saat angka halaman di tengah muncul atau hilang. 500px cukup untuk kasus
+     terlebar (5 nomor dua digit + 2 ellipsis ≈ 253px) di tengah 500-208px.
+     Persentase aman karena lebar .library-filters pasti (block penuh). */
+  min-width: min(500px, 100%);
 }
 .library-filter-chip {
 font-family: 'VT323', 'Courier New', monospace;
@@ -3501,30 +3501,44 @@ font-family: 'VT323', 'Courier New', monospace;
   align-items: center;
   justify-content: flex-end;
   gap: 0.5rem 0.9rem;
-  /* Penuh selebar slot tetap, lalu nav memakai space-between di dalamnya. */
+  /* Penuh selebar slot tetap. */
   width: 100%;
 }
 .library-pager-nav {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
   width: 100%;
+  /* Nomor halaman duduk di ruang tengah; « ‹ dan › » dipatok absolute di
+     ujung, jadi jaraknya tetap rapat dan tidak bergeser saat angka berubah. */
+  padding: 0 104px;
+  justify-content: center;
 }
 .library-pager-edge {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
 }
-/* Lebar tetap + rata tengah: angka halaman berubah-ubah tidak menggeser
-   tombol « ‹ › ». Naikkan kalau jumlah halaman tembus 3 angka. */
+.library-pager-edge:first-child {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.library-pager-edge:last-child {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
 .library-pager-pages {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  min-width: 310px;
 }
 .library-pager-btn {
   font-family: inherit;
