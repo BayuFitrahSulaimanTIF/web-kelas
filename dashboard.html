@@ -5460,7 +5460,9 @@
       function loadLibraryFiles() {
         showLibrarySkeleton();
         const startedAt = Date.now();
-        return fetch(API_ORIGIN + '/api/library/files')
+        // refresh=1: scan ulang folder (~0,3 detik) supaya ebook yang ditambah
+        // lewat Explorer langsung muncul, bukan hasil cache lama.
+        return fetch(API_ORIGIN + '/api/library/files?refresh=1')
           .then((r) => { if (!r.ok) throw new Error('API tidak tersedia'); return r.json(); })
           .then((data) => {
             libraryFiles = (data.files || []).map((f) => {

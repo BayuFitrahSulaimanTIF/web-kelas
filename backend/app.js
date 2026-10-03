@@ -106,7 +106,8 @@ app.use('/uploads/avatars', express.static(AVATAR_DIR, {
 app.get('/api/library/files', (req, res) => {
   try {
     const meta = readLibraryMeta();
-    const files = listLibraryFiles();
+    // ?refresh=1 memaksa scan ulang (mis. setelah file ditambah lewat Explorer)
+    const files = listLibraryFiles(req.query.refresh === '1');
     // ponytail: style/tahun/bahasa disimpan terpisah (library_meta.json) supaya
     // nama file tetap bersih judul saja — tidak ada prefix STYLE_LANG_YEAR.
     const payload = {

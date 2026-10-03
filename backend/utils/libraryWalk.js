@@ -25,17 +25,25 @@ function walkLibrary(dir, base, out) {
 }
 
 // Scan ribuan file tiap request itu berat (readdir + stat per file), jadi hasilnya
-// ditahan di memory. Segera dibuat ulang setelah upload/edit/delete lewat
-// invalidateLibraryCache(). Hasilnya dibaca saja, jangan dimutasi.
+// ditahan di memory. Cache basi kalau ada file yang ditambah langsung lewat
+// Explorer (bukan lewat upload), jadi tetap kedaluwarsa setelah CACHE_TTL_MS
+// atau di-refresh paksa. Hasilnya dibaca saja, jangan dimutasi.
+const CACHE_TTL_MS = 60 * 1000;
 let cachedFiles = null;
+let cachedAt = 0;
 
-function listLibraryFiles() {
-  if (!cachedFiles) cachedFiles = walkLibrary(LIBRARY_DIR, LIBRARY_DIR, []);
+function listLibraryFiles(force) {
+  const fresh = cachedFiles && Date.now() - cachedAt < CACHE_TTL_MS;
+  if (force || !fresh) {
+    cachedFiles = walkLibrary(LIBRARY_DIR, LIBRARY_DIR, []);
+    cachedAt = Date.now();
+  }
   return cachedFiles;
 }
 
 function invalidateLibraryCache() {
   cachedFiles = null;
+  cachedAt = 0;
 }
 
 module.exports = { LIBRARY_DIR, walkLibrary, listLibraryFiles, invalidateLibraryCache };
