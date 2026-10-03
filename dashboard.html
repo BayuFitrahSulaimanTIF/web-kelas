@@ -5650,7 +5650,7 @@
         const q = libraryInput.value.trim();
         const base = currentFilteredDocs();
         const results = q ? librarySearch(q, base) : base;
-        renderLibraryResults(results, q, base.length);
+        renderLibraryResults(results, q);
       }
 
       loadLibraryFiles();
@@ -5960,7 +5960,7 @@
           .sort((a, b) => b.score - a.score || a.doc.title.localeCompare(b.doc.title));
       }
 
-      function renderLibraryResults(results, query, baseCount) {
+      function renderLibraryResults(results, query) {
         const q = query.trim();
         const pagerSlot = document.getElementById('library-pager-slot');
         if (pagerSlot) pagerSlot.innerHTML = '';
@@ -5982,16 +5982,18 @@
           }
           return;
         }
-        const typeLabel = typeFilter ? typeFilter.toLowerCase() : '';
-        const activeLabel = activeFilter === 'Semua' || activeFilter === LIBRARY_SAVED_FILTER ? activeFilter : titleCaseTopic(activeFilter);
-        const heading = q
-          ? results.length + ' hasil ditemukan untuk "' + escapeHtml(q) + '"' + (activeFilter !== 'Semua' ? ' (kategori ' + escapeHtml(activeLabel) + ')' : '') + (typeLabel ? ' (filter: ' + typeLabel + ')' : '')
-          : 'Menampilkan ' + results.length + ' file' + (typeLabel ? ' ' + typeLabel : '') + (activeFilter !== 'Semua' ? ' pada kategori "' + escapeHtml(activeLabel) + '"' : '') + ' dari total ' + (baseCount || libraryFiles.length) + ' file';
         // ponytail: hanyaPotong yang dirender per halaman; filter & pencarian tetap di atas
         const totalPages = Math.max(1, Math.ceil(results.length / LIBRARY_PAGE_SIZE));
         if (libraryPage > totalPages) libraryPage = totalPages;
         const pageStart = (libraryPage - 1) * LIBRARY_PAGE_SIZE;
         const pageItems = results.slice(pageStart, pageStart + LIBRARY_PAGE_SIZE);
+        const typeLabel = typeFilter ? typeFilter.toLowerCase() : '';
+        const activeLabel = activeFilter === 'Semua' || activeFilter === LIBRARY_SAVED_FILTER ? activeFilter : titleCaseTopic(activeFilter);
+        // Judul mengikuti isi halaman ini, bukan total keseluruhan.
+        const rangeText = 'Menampilkan ' + (pageStart + 1) + '-' + (pageStart + pageItems.length) + ' dari ' + results.length + ' ebook';
+        const heading = q
+          ? results.length + ' hasil ditemukan untuk "' + escapeHtml(q) + '"' + (activeFilter !== 'Semua' ? ' (kategori ' + escapeHtml(activeLabel) + ')' : '') + (typeLabel ? ' (filter: ' + typeLabel + ')' : '')
+          : rangeText + (activeFilter !== 'Semua' ? ' pada kategori "' + escapeHtml(activeLabel) + '"' : '') + (typeLabel ? ' ' + typeLabel : '');
         const itemsHtml = pageItems.map((r) => {
           const d = r.doc || r;
           const isFile = !!d.isFile;
@@ -6025,11 +6027,11 @@
         libraryResultsEl.innerHTML =
           '<p class="library-count">' + heading + '</p>' +
           '<div class="library-grid">' + itemsHtml + '</div>';
-        if (pagerSlot) pagerSlot.innerHTML = libraryPagerHtml(results.length, totalPages, pageStart, pageItems.length);
+        if (pagerSlot) pagerSlot.innerHTML = libraryPagerHtml(totalPages);
       }
 
       // Pager: tampilkan halaman pertama, sekitar halaman aktif, dan halaman terakhir.
-      function libraryPagerHtml(total, totalPages, pageStart, shown) {
+      function libraryPagerHtml(totalPages) {
         if (totalPages <= 1) return '';
         const nav = [];
         const button = (label, page, disabled, active) =>
@@ -6043,10 +6045,7 @@
           shownPage = p;
         }
         nav.push(button('Berikutnya', libraryPage + 1, libraryPage === totalPages, false));
-        return '<div class="library-pager">' +
-          '<span class="library-pager-info">Menampilkan ' + (pageStart + 1) + '-' + (pageStart + shown) + ' dari ' + total + ' ebook</span>' +
-          '<div class="library-pager-nav">' + nav.join('') + '</div>' +
-          '</div>';
+        return '<div class="library-pager"><div class="library-pager-nav">' + nav.join('') + '</div></div>';
       }
 
       libraryFiltersEl.addEventListener('click', (e) => {

@@ -3493,11 +3493,8 @@ font-family: 'VT323', 'Courier New', monospace;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.5rem 0.9rem;
-}
-.library-pager-info {
-  font-size: 0.82rem;
-  color: #555555;
 }
 .library-pager-nav {
   display: flex;
