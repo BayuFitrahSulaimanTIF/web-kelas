@@ -3494,6 +3494,183 @@ font-family: 'VT323', 'Courier New', monospace;
   margin-bottom: 0;
 }
 
+/* ========== LONTECENG NOTIFIKASI ========== */
+.notif-bell {
+  position: absolute;
+  right: 1.1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.1rem;
+  height: 2.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: #ffffff;
+  transition: background 0.2s, border-color 0.2s;
+}
+.notif-bell:hover,
+.notif-bell[aria-expanded="true"] {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: #ffffff;
+}
+.notif-bell-count {
+  /* Diletakkan di dalam tombol: header memakai overflow:hidden, jadi badge
+     yang menonjol keluar akan terpotong. */
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 1rem;
+  padding: 0 0.2rem;
+  border-radius: 999px;
+  background: #d92b2b;
+  color: #ffffff;
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 0.7rem;
+  line-height: 1rem;
+  text-align: center;
+}
+.notif-panel {
+  position: fixed;
+  top: calc(var(--dashboard-header-height) + 8px);
+  right: 1.1rem;
+  width: 330px;
+  max-width: calc(100vw - 2rem);
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 10px;
+  z-index: 60;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+  overflow: hidden;
+}
+.notif-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid #ededf2;
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 0.9rem;
+}
+.notif-panel-clear {
+  background: none;
+  border: none;
+  color: #666666;
+  font-family: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 0;
+}
+.notif-panel-clear:hover { color: #111111; }
+/* 7 notifikasi terlihat, sisanya di-scroll. */
+.notif-list {
+  max-height: 364px;
+  overflow-y: auto;
+}
+.notif-list::-webkit-scrollbar { width: 6px; }
+.notif-list::-webkit-scrollbar-track { background: transparent; }
+.notif-list::-webkit-scrollbar-thumb { background: rgba(150, 150, 150, 0.45); border-radius: 3px; }
+.notif-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #f2f2f5;
+  padding: 0.55rem 0.7rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.notif-item:hover { background: #f6f6f8; }
+.notif-item.unread { background: #fbf7e6; }
+.notif-item.unread:hover { background: #f7f0d4; }
+.notif-item-title {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #16233e;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.notif-item-time {
+  flex: 0 0 auto;
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 0.75rem;
+  color: #8a99b3;
+}
+.notif-item-body {
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  color: #5a6b87;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.notif-empty {
+  padding: 1.1rem 0.7rem;
+  text-align: center;
+  font-size: 0.82rem;
+  color: #8a99b3;
+}
+/* Toast sementara tepat di bawah lonceng. */
+.notif-toast-wrap {
+  position: fixed;
+  top: calc(var(--dashboard-header-height) + 8px);
+  right: 1.1rem;
+  width: 330px;
+  max-width: calc(100vw - 2rem);
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  pointer-events: none;
+}
+.notif-toast {
+  background: #111111;
+  color: #ffffff;
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  animation: notifToastIn 0.24s ease both;
+}
+.notif-toast.leaving {
+  animation: notifToastOut 0.24s ease both;
+}
+.notif-toast-title {
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 0.82rem;
+  color: #f4d97a;
+}
+.notif-toast-body {
+  font-size: 0.8rem;
+  opacity: 0.92;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.notif-toast-time {
+  margin-top: 0.2rem;
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 0.72rem;
+  opacity: 0.6;
+}
+@keyframes notifToastIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes notifToastOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+
 /* ========== TOAST SUB-NAV CAMPUSS (halaman kosong) ========== */
 /* pointer-events: none supaya tidak pernah memblokir klik halaman. */
 .campuss-hint {

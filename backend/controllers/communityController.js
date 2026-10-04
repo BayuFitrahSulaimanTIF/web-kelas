@@ -9,6 +9,29 @@ const CommunityMessage = require('../models/CommunityMessage');
 const { handleCommunityMedia, mediaPath } = require('../utils/communityUpload');
 const { listLibraryFiles } = require('../utils/libraryWalk');
 const { AppError } = require('../utils/errors');
+const User = require('../models/User');
+const UserNotification = require('../models/UserNotification');
+
+// "@username" di chat -> notifikasi untuk user yang disebut (bukan pengirim).
+function notifyMentions(text, sender, messageId) {
+  const names = new Set();
+  const re = /@([a-zA-Z0-9_.-]{2,32})/g;
+  let m;
+  while ((m = re.exec(String(text || '')))) names.add(m[1].toLowerCase());
+  if (!names.size) return Promise.resolve(0);
+  return Promise.all(Array.from(names).map((name) => User.findByUsername(name).catch(() => null)))
+    .then((users) => UserNotification.createMany(
+      users
+        .filter((u) => u && u.id !== sender.id)
+        .map((u) => ({
+          userId: u.id,
+          senderId: sender.id,
+          kind: 'mention',
+          title: (u.full_name || u.username) + ' mention Anda di Community',
+          body: String(text).slice(0, 160)
+        }))
+    )).catch(() => 0);
+}
 
 // Parse "/library <judul ebook> <teks bebas>": judul dicocokkan kata-per-kata
 // terhadap nama file library (tanpa ekstensi), sehingga teks di belakang judul
@@ -143,6 +166,8 @@ exports.sendText = asyncHandler(async (req, res) => {
   });
 
   const created = await CommunityMessage.findById(id);
+  // Notifikasi mention best-effort: kegagalan tidak boleh membatalkan pesan.
+  notifyMentions(text, req.user, id).catch(() => {});
   res.status(201).json({ message: 'Pesan terkirim', msg: created });
 });
 

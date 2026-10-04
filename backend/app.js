@@ -18,12 +18,17 @@ const ssoRoutes = require('./routes/sso');
 const fileRoutes = require('./routes/files');
 const userRoutes = require('./routes/users');
 const notificationRoutes = require('./routes/notifications');
+const userNotificationRoutes = require('./routes/userNotifications');
+const UserNotification = require('./models/UserNotification');
+// Tabel notifikasi navbar dibuat sendiri saat start (belum perlu migrasi manual).
+UserNotification.ensureTable().catch((e) => console.error('Gagal membuat tabel user_notifications:', e.message));
 const communityRoutes = require('./routes/community');
 const requestLogger = require('./middlewares/requestLogger');
 const { notFoundHandler, errorHandler } = require('./middlewares/errorHandler');
 const { createRateLimiter } = require('./middlewares/rateLimiter');
 const libraryUploadLimiter = createRateLimiter({ windowMs: 60*1000, max: 10, name: 'library-upload' });
 const newsUploadLimiter = createRateLimiter({ windowMs: 60*1000, max: 15, name: 'news-upload' });
+const User = require('./models/User');
 
 const app = express();
 
@@ -706,6 +711,17 @@ app.post('/api/news', authenticate, requireLibraryAdmin, newsUploadLimiter, (req
     };
     data.unshift(item);
     writeNews(data);
+    // Pemberitahuan untuk semua user (kecuali penulis) supaya lonceng di
+    // navbar berbunyi saat berita baru ditambahkan.
+    User.listAllExcept(req.user.id)
+      .then((users) => UserNotification.createMany(users.map((u) => ({
+        userId: u.id,
+        senderId: req.user.id,
+        kind: 'news',
+        title: 'Berita baru: ' + item.title,
+        body: item.category
+      }))))
+      .catch(() => {});
     res.status(201).json({ message: 'Berita berhasil ditambahkan', item });
   });
 });
@@ -800,6 +816,7 @@ app.use('/api/auth/sso', ssoRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/user-notifications', userNotificationRoutes);
 app.use('/api/community', communityRoutes);
 
 app.use(notFoundHandler);

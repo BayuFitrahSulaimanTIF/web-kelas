@@ -348,7 +348,25 @@
         <li><a href="#library" data-page="library">Library</a></li>
       </ul>
     </nav>
+
+    <!-- ================== LONTECENG NOTIFIKASI (kanan atas) ================== -->
+    <button class="notif-bell" id="notif-bell" type="button" aria-label="Notifikasi" aria-expanded="false">
+      <span class="notif-bell-icon" aria-hidden="true">&#128276;</span>
+      <span class="notif-bell-count" id="notif-bell-count" hidden>0</span>
+    </button>
   </header>
+
+  <!-- Panel antrean notifikasi (max 7 baris terlihat, sisanya di-scroll) -->
+  <div class="notif-panel" id="notif-panel" hidden>
+    <div class="notif-panel-head">
+      <span>Notifikasi</span>
+      <button type="button" class="notif-panel-clear" id="notif-clear">Tandai dibaca</button>
+    </div>
+    <div class="notif-list" id="notif-list"></div>
+  </div>
+
+  <!-- Toast notifikasi sementara di bawah lonceng, lalu masuk antrean -->
+  <div class="notif-toast-wrap" id="notif-toast-wrap"></div>
 
   <!-- ======================== SUB-NAVIGASI CLASS (dropdown) ======================== -->
   <div class="nav-dropdown" id="nav-class-menu" style="display:none;">
@@ -2006,6 +2024,152 @@
           if (e.key === 'Escape') closeClassMenu();
         });
       }
+
+      // ---------- Lonceng notifikasi ----------
+      // Sumber notifikasi: mention "@username" di Community dan berita baru di
+      // News (keduanya disimpan di tabel file_notifications lewat backend).
+      // Notifikasi baru: toast singkat di bawah lonceng, lalu tetap di antrean.
+      const NOTIF_POLL_MS = 20000;
+      const NOTIF_TOAST_MS = 6000;
+      var notifItems = [];
+      var notifSeen = new Set();
+      var notifBootstrapped = false;
+      var notifBell = document.getElementById('notif-bell');
+      var notifPanel = document.getElementById('notif-panel');
+      var notifList = document.getElementById('notif-list');
+      var notifCount = document.getElementById('notif-bell-count');
+      var notifToastWrap = document.getElementById('notif-toast-wrap');
+      var notifClearBtn = document.getElementById('notif-clear');
+
+      function notifTime(value) {
+        if (!value) return '';
+        var raw = String(value).replace('T', ' ').replace('Z', '');
+        var d = new Date(raw.replace(' ', 'T'));
+        if (isNaN(d.getTime())) return '';
+        var hh = String(d.getHours()).padStart(2, '0');
+        var mm = String(d.getMinutes()).padStart(2, '0');
+        var today = new Date();
+        var sameDay = d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+        return sameDay ? hh + ':' + mm : d.getDate() + '/' + (d.getMonth() + 1) + ' ' + hh + ':' + mm;
+      }
+
+      function notifTitle(n) {
+        return n.title || (n.kind === 'mention' ? 'Mention di Community' : 'Notifikasi');
+      }
+
+      function notifTargetPage(n) {
+        if (n.kind === 'mention') return 2; // halaman Community
+        if (n.kind === 'news') return campussIndex; // halaman News (nav Campuss)
+        return -1;
+      }
+
+      function renderNotifBadge() {
+        var unread = notifItems.filter(function (n) { return !n.is_read; }).length;
+        if (!notifCount) return;
+        notifCount.textContent = unread > 99 ? '99+' : String(unread);
+        notifCount.hidden = unread === 0;
+      }
+
+      function renderNotifList() {
+        if (!notifList) return;
+        if (!notifItems.length) {
+          notifList.innerHTML = '<p class="notif-empty">Belum ada notifikasi.</p>';
+          return;
+        }
+        notifList.innerHTML = notifItems.map(function (n) {
+          return '<button type="button" class="notif-item' + (n.is_read ? '' : ' unread') + '" data-notif-id="' + n.id + '">' +
+            '<span class="notif-item-title"><span>' + escapeHtml(notifTitle(n)) + '</span>' +
+            '<span class="notif-item-time">' + escapeHtml(notifTime(n.created_at)) + '</span></span>' +
+            '<span class="notif-item-body">' + escapeHtml(n.body || '') + '</span>' +
+            '</button>';
+        }).join('');
+      }
+
+      function pushNotifToast(n) {
+        if (!notifToastWrap) return;
+        var el = document.createElement('div');
+        el.className = 'notif-toast';
+        el.innerHTML =
+          '<div class="notif-toast-title">' + escapeHtml(notifTitle(n)) + '</div>' +
+          '<div class="notif-toast-body">' + escapeHtml(n.body || '') + '</div>' +
+          '<div class="notif-toast-time">' + escapeHtml(notifTime(n.created_at)) + '</div>';
+        notifToastWrap.appendChild(el);
+        window.setTimeout(function () {
+          el.classList.add('leaving');
+          window.setTimeout(function () { el.remove(); }, 240);
+        }, NOTIF_TOAST_MS);
+      }
+
+      function loadNotifications() {
+        return fetch(API_ORIGIN + '/api/user-notifications', { headers: authHeaders() })
+          .then(function (r) { return r.ok ? r.json() : { notifications: [] }; })
+          .then(function (data) {
+            var list = data.notifications || [];
+            var fresh = list.filter(function (n) { return !notifSeen.has(n.id); });
+            notifItems = list;
+            if (notifBootstrapped) fresh.forEach(pushNotifToast);
+            else notifBootstrapped = true;
+            list.forEach(function (n) { notifSeen.add(n.id); });
+            renderNotifList();
+            renderNotifBadge();
+          })
+          .catch(function () {});
+      }
+
+      function openNotifPanel() {
+        if (!notifPanel) return;
+        notifPanel.hidden = false;
+        if (notifBell) notifBell.setAttribute('aria-expanded', 'true');
+        // Toast sementara disembunyikan supaya tidak menimpa panel.
+        if (notifToastWrap) notifToastWrap.innerHTML = '';
+        loadNotifications();
+      }
+      function closeNotifPanel() {
+        if (!notifPanel) return;
+        notifPanel.hidden = true;
+        if (notifBell) notifBell.setAttribute('aria-expanded', 'false');
+      }
+
+      if (notifBell) {
+        notifBell.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (notifPanel.hidden) openNotifPanel();
+          else closeNotifPanel();
+        });
+      }
+      document.addEventListener('click', function (e) {
+        if (notifPanel && notifPanel.hidden) return;
+        if (e.target.closest && (e.target.closest('#notif-panel') || e.target.closest('#notif-bell'))) return;
+        closeNotifPanel();
+      });
+      if (notifList) {
+        notifList.addEventListener('click', function (e) {
+          var btn = e.target.closest('[data-notif-id]');
+          if (!btn) return;
+          var id = Number(btn.getAttribute('data-notif-id'));
+          var item = notifItems.find(function (n) { return n.id === id; });
+          closeNotifPanel();
+          fetch(API_ORIGIN + '/api/user-notifications/' + id + '/read', {
+            method: 'POST',
+            headers: authHeaders()
+          }).catch(function () {});
+          if (item) {
+            item.is_read = 1;
+            renderNotifBadge();
+          }
+          var target = item ? notifTargetPage(item) : -1;
+          if (target >= 0) goToPage(target, false);
+        });
+      }
+      if (notifClearBtn) {
+        notifClearBtn.addEventListener('click', function () {
+          fetch(API_ORIGIN + '/api/user-notifications/read-all', { method: 'POST', headers: authHeaders() })
+            .then(function () { notifItems.forEach(function (n) { n.is_read = 1; }); renderNotifBadge(); renderNotifList(); })
+            .catch(function () {});
+        });
+      }
+      loadNotifications();
+      window.setInterval(loadNotifications, NOTIF_POLL_MS);
 
       // ---------- Sub-navigasi Campuss (News / Organitation / Calender) ----------
       // Nav "Campuss" memakai data-page="news" supaya tetap memakai halaman
