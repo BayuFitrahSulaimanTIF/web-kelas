@@ -83,6 +83,17 @@ app.use(express.urlencoded({ extended: true }));
 
 // Statis selalu divalidasi ulang ke server (max-age=0) agar perubahan
 // dashboard.html/style.css langsung terlihat tanpa cache tersimpan lama.
+// Guard: folder backend/ dan file tersembunyi (dotfile) TIDAK boleh disajikan
+// lewat HTTP. Tanpa ini, seluruh source server + news.json bisa diunduh lewat
+// tunnel ngrok hanya dengan mengetik /backend/app.js.
+app.use((req, res, next) => {
+  let p = req.path;
+  try { p = decodeURIComponent(p); } catch (e) {}
+  if (/(^|\/)backend(\/|$)/i.test(p) || p.split('/').some((seg) => seg.charAt(0) === '.')) {
+    return res.status(404).send('Not found');
+  }
+  next();
+});
 app.use(express.static(path.join(__dirname, '..'), { maxAge: 0, etag: true }));
 
 // Dashboard (dashboard.html berada di root yang sama)
