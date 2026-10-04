@@ -1896,6 +1896,14 @@
             closeSideMenu();
             return;
           }
+          if (idx === 3) {
+            // Campuss hanya display: buka dropdown (News / Organitation /
+            // Calender), tidak melompat ke isi News. Baru sub-nav News yang
+            // memindahkan halaman.
+            openCampussMenu();
+            closeSideMenu();
+            return;
+          }
           if (idx === currentPageIndex) {
             closeSideMenu();
             reloadPage(idx);
@@ -2055,8 +2063,9 @@
           campussMenuTimer = window.setTimeout(closeCampussMenu, 150);
         });
         campussToggle.addEventListener('click', function () {
-          if (campussMenu.style.display === 'block') closeCampussMenu();
-          else openCampussMenu();
+          // Nav utama (idx 3) sudah membuka dropdown; di sini jangan toggle
+          // lagi atau dropdown langsung tertutup lagi.
+          openCampussMenu();
         });
         campussLinks.forEach(function (link) {
           link.addEventListener('click', function (e) {
