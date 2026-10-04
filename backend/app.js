@@ -542,6 +542,31 @@ app.get('/api/library/secret', authenticate, requireLibraryAdmin, async (req, re
     });
     lines.push('');
     lines.push('Catatan: password tidak ditampilkan karena tersimpan sebagai hash (argon2/bcrypt).');
+
+    // Bukti audit keamanan sandi (hasil cracking offline, lihat utils/securityAudit.js)
+    try {
+      const auditFile = path.join(__dirname, 'security_audit.json');
+      if (fs.existsSync(auditFile)) {
+        const audit = JSON.parse(fs.readFileSync(auditFile, 'utf8'));
+        if (audit && Array.isArray(audit.results) && audit.results.length) {
+          const weak = audit.results.filter((r) => r.cracked);
+          lines.push('');
+          lines.push('== AUDIT KEAMANAN SANDI (offline, brute-force dictionary) ==');
+          lines.push('Waktu audit           : ' + String(audit.generatedAt || '').replace('T', ' ').slice(0, 19));
+          lines.push('Akun diaudit          : ' + audit.results.length);
+          lines.push('Password berhasil bobol: ' + weak.length + ' (' + audit.results.map((r) => (r.cracked ? r.username + ' = ' + r.password + ' [' + r.technique + ']' : '')).filter(Boolean).join('; ') + ')');
+          lines.push('');
+          lines.push(pad('USERNAME', 22) + pad('STATUS', 9) + pad('TEKNIK', 38) + 'PASSWORD BOBOL');
+          audit.results.forEach((r) => {
+            lines.push(pad(r.username, 22) + pad(r.cracked ? 'LEMAH' : 'KUAT', 9) + pad(r.technique, 38) + (r.cracked ? r.password : '-'));
+          });
+          lines.push('');
+          lines.push('Password di atas BUKAN hasil dekripsi hash: argon2id tidak bisa dibalik.');
+          lines.push('Password itu berhasil ditemukan karena polanya bisa ditebak (dictionary attack).');
+          lines.push('Perbaikan: password minimal 12 karakter, tanpa nama username, tanpa tahun, dan reset akun bertanda LEMAH.');
+        }
+      }
+    } catch (e) {}
     res.json({ fileName: 'akun-terdaftar.txt', title: 'Akun Terdaftar (Rahasia)', content: lines.join('\n') });
   } catch (error) {
     res.status(500).json({ message: error.message });

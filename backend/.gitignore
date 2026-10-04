@@ -11,3 +11,4 @@ library_meta.json
 .supervisor.pid
 watchdog.log
 server.log
+security_audit.json
