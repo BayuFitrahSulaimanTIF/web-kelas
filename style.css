@@ -3000,6 +3000,7 @@ font-family: 'VT323', 'Courier New', monospace;
   display: flex; justify-content: space-between; gap: 0.5rem;
 }
 .mention-item:hover { background: #eef8ee; }
+.mention-item.active { background: #eef8ee; }
 .mention-item-name { color: #1a7a1a; font-weight: 700; }
 .mention-item-desc { color: #888; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cmd-send {

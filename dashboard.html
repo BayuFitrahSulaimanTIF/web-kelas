@@ -771,6 +771,7 @@
               <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
             </button>
             <textarea class="chat-text" id="chat-input" placeholder="Ketik pesan..." autocomplete="off" rows="1"></textarea>
+            <div class="mention-dropdown" id="chat-mention-dropdown" style="display: none;"></div>
             <button type="button" class="chat-send" id="chat-send">Kirim</button>
             <div class="chat-record" id="chat-record" style="display: none;">
               <span class="rec-dot"></span>
@@ -3936,7 +3937,6 @@
       const mentionDropdown = document.getElementById('mention-dropdown');
       let cmdFile = null;
       let cmdReplyTo = null;
-      let mentionUsers = null;
 
       function openCommand(kind, id, name) {
         cmdFile = { kind, id, name };
@@ -3946,23 +3946,13 @@
         cmdTitle.textContent = name;
         cmdOverlay.classList.add('active');
         loadCommandComments();
-        if (!mentionUsers) {
-          fetch(USERS_API + '/mentions', { headers: authHeaders() })
-            .then((r) => r.json())
-            .then((data) => {
-              if (data && Array.isArray(data.users)) {
-                const me = getStoredUser();
-                mentionUsers = data.users.filter((u) => !me || u.username !== me.username);
-              }
-            })
-            .catch(() => {});
-        }
+        loadMentionUsers();
         window.setTimeout(() => cmdInput.focus(), 100);
       }
 
       function closeCommand() {
         cmdOverlay.classList.remove('active');
-        hideMentionDropdown();
+        hideMentionDropdown(cmdMentionTarget);
       }
 
       function loadCommandComments() {
@@ -4194,7 +4184,7 @@
             cmdReplyTo = null;
             cmdReplyBar.style.display = 'none';
             cmdInput.value = '';
-            hideMentionDropdown();
+            hideMentionDropdown(cmdMentionTarget);
             cmdPendingExpand = data.comment && data.comment.id;
             loadCommandComments();
           })
@@ -4207,64 +4197,133 @@
         if (e.target === cmdOverlay) closeCommand();
       });
 
-      // ---------- Mention @username ----------
-      function hideMentionDropdown() {
-        mentionDropdown.style.display = 'none';
+      // ---------- Mention @username (dipakai chat + komentar file) ----------
+      // Satu implementasi untuk dua input: mentionTargets = [{input, dropdown}].
+      const mentionTargets = [];
+      var mentionUsers = null;
+
+      function hideMentionDropdown(target) {
+        if (!target) return;
+        target.dropdown.style.display = 'none';
+        target.active = -1;
+        target.matches = [];
       }
 
-      function showMentionDropdown(users) {
-        mentionDropdown.innerHTML = '';
-        if (!users || users.length === 0) {
-          mentionDropdown.style.display = 'none';
+      function showMentionDropdown(target, users) {
+        target.dropdown.innerHTML = '';
+        target.matches = users || [];
+        target.active = target.matches.length ? 0 : -1;
+        if (!target.matches.length) {
+          target.dropdown.style.display = 'none';
           return;
         }
-        users.slice(0, 8).forEach((u) => {
+        target.matches.slice(0, 8).forEach((u, i) => {
           const item = document.createElement('div');
-          item.className = 'mention-item';
+          item.className = 'mention-item' + (i === target.active ? ' active' : '');
+          item.dataset.index = String(i);
           item.dataset.username = u.username;
           item.innerHTML = '<span class="mention-item-name">@' + escapeHtml(u.username) + '</span> <span class="mention-item-desc">' + escapeHtml(u.full_name || '') + '</span>';
-          mentionDropdown.appendChild(item);
+          target.dropdown.appendChild(item);
         });
-        mentionDropdown.style.display = 'block';
+        target.dropdown.style.display = 'block';
       }
 
-      cmdInput.addEventListener('input', () => {
-        const pos = cmdInput.selectionStart;
-        const before = cmdInput.value.slice(0, pos);
-        const at = before.lastIndexOf('@');
+      function highlightMention(target) {
+        Array.prototype.forEach.call(target.dropdown.children, (el, i) => {
+          el.classList.toggle('active', i === target.active);
+        });
+        const on = target.dropdown.children[target.active];
+        if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest' });
+      }
 
-        if (at === -1 || /[\s@]/.test(before.slice(at + 1))) {
-          hideMentionDropdown();
+      function mentionQueryAt(target) {
+        const pos = target.input.selectionStart;
+        const before = target.input.value.slice(0, pos);
+        const at = before.lastIndexOf('@');
+        if (at === -1 || /[\s@]/.test(before.slice(at + 1))) return null;
+        return { at, query: before.slice(at + 1).toLowerCase() };
+      }
+
+      function updateMentionDropdown(target) {
+        const ctx = mentionQueryAt(target);
+        if (!ctx) {
+          hideMentionDropdown(target);
           return;
         }
+        loadMentionUsers().then((users) => {
+          const still = mentionQueryAt(target);
+          if (!still || still.at !== ctx.at || !users) return;
+          const q = still.query;
+          // Cocok dari awal username; kalau tidak ada, cocok di nama lengkap.
+          let matches = users.filter((u) => u.username.toLowerCase().indexOf(q) === 0);
+          if (!matches.length && q) {
+            matches = users.filter((u) => String(u.full_name || '').toLowerCase().indexOf(q) !== -1);
+          }
+          showMentionDropdown(target, matches);
+        });
+      }
 
-        const query = before.slice(at + 1).toLowerCase();
-        if (!mentionUsers) return;
-        const me = getStoredUser();
-        const matches = mentionUsers.filter((u) => u.username.toLowerCase().startsWith(query) && (!me || u.username !== me.username));
-        showMentionDropdown(matches);
-      });
-
-      mentionDropdown.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        const item = e.target.closest('.mention-item');
-        if (!item) return;
-
-        const pos = cmdInput.selectionStart;
-        const before = cmdInput.value.slice(0, pos);
+      function applyMention(target, username) {
+        const pos = target.input.selectionStart;
+        const before = target.input.value.slice(0, pos);
         const at = before.lastIndexOf('@');
-        const after = cmdInput.value.slice(pos);
+        const after = target.input.value.slice(pos);
+        target.input.value = before.slice(0, at) + '@' + username + ' ' + after;
+        const newPos = at + username.length + 2;
+        target.input.setSelectionRange(newPos, newPos);
+        hideMentionDropdown(target);
+        target.input.focus();
+      }
 
-        cmdInput.value = before.slice(0, at) + '@' + item.dataset.username + ' ' + after;
-        const newPos = at + item.dataset.username.length + 2;
-        cmdInput.setSelectionRange(newPos, newPos);
-        hideMentionDropdown();
-        cmdInput.focus();
-      });
+      function registerMentionTarget(input, dropdown) {
+        const target = { input, dropdown, active: -1, matches: [] };
+        mentionTargets.push(target);
+        input.addEventListener('input', () => updateMentionDropdown(target));
+        input.addEventListener('click', () => updateMentionDropdown(target));
+        input.addEventListener('blur', () => {
+          window.setTimeout(() => hideMentionDropdown(target), 150);
+        });
+        dropdown.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          const item = e.target.closest('.mention-item');
+          if (!item) return;
+          applyMention(target, item.dataset.username);
+        });
+        // Panah atas/bawah + Enter memilih, seperti autocomplete pada chat.
+        input.addEventListener('keydown', (e) => {
+          if (target.dropdown.style.display !== 'block' || !target.matches.length) return;
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            const dir = e.key === 'ArrowDown' ? 1 : -1;
+            const n = Math.min(target.matches.length, 8);
+            target.active = (target.active + dir + n) % n;
+            highlightMention(target);
+          } else if (e.key === 'Enter' || e.key === 'Tab') {
+            const pick = target.matches[target.active];
+            if (!pick) return;
+            e.preventDefault();
+            // stopImmediatePropagation: Enter dipakai untuk memilih mention,
+            // bukan mengirim pesan (listener chat ada di elemen yang sama).
+            e.stopImmediatePropagation();
+            applyMention(target, pick.username);
+          } else if (e.key === 'Escape') {
+            hideMentionDropdown(target);
+          }
+        });
+        return target;
+      }
 
-      cmdInput.addEventListener('blur', () => {
-        window.setTimeout(hideMentionDropdown, 150);
-      });
+      function loadMentionUsers() {
+        if (mentionUsers) return Promise.resolve(mentionUsers);
+        return fetch(USERS_API + '/mentions', { headers: authHeaders() })
+          .then((r) => r.json())
+          .then((data) => {
+            const me = getStoredUser();
+            mentionUsers = ((data && data.users) || []).filter((u) => !me || u.username !== me.username);
+            return mentionUsers;
+          })
+          .catch(() => []);
+      }
 
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
@@ -4272,6 +4331,14 @@
           closeCommand();
         }
       });
+
+      // Daftarkan dua input yang bisa dipakai mention: komentar file & chat Community.
+      const cmdMentionTarget = registerMentionTarget(cmdInput, mentionDropdown);
+      const chatMentionTarget = registerMentionTarget(
+        document.getElementById('chat-input'),
+        document.getElementById('chat-mention-dropdown')
+      );
+      loadMentionUsers();
 
       // ============================================================
       // NOTIFIKASI MENTION @USERNAME (pojok kanan atas)
