@@ -14,6 +14,7 @@ const asyncHandler = require('../middlewares/asyncHandler');
 const User = require('../models/User');
 const RefreshToken = require('../models/RefreshToken');
 const PasswordCodec = require('../utils/passwordCodec');
+const { markAccountDirty } = require('../utils/auditRunner');
 const { AVATAR_DIR } = require('../utils/avatarUpload');
 const { generateAccountToken } = require('../utils/accountToken');
 const { AppError } = require('../utils/errors');
@@ -190,6 +191,8 @@ exports.register = asyncHandler(async (req, res) => {
   });
 
   const createdUser = await User.findById(userId);
+  // Akun baru: audit keamanan sandi akan mengujinya pada siklus berikutnya.
+  markAccountDirty(userId, username);
   res.status(201).json({
     message: 'Akun berhasil dibuat',
     user: sanitizeUser(createdUser)
@@ -301,6 +304,7 @@ exports.resetPassword = asyncHandler(async (req, res) => {
 
   const passwordHash = await PasswordCodec.hashPassword(newPassword);
   await User.updatePassword(user.id, passwordHash);
+  markAccountDirty(req.user.id, req.user.username);
   await RefreshToken.deleteByUserId(user.id);
 
   res.json({ message: 'Kata sandi berhasil diperbarui. Silakan masuk dengan kata sandi baru' });
@@ -346,6 +350,7 @@ exports.changePassword = asyncHandler(async (req, res) => {
 
   const passwordHash = await PasswordCodec.hashPassword(String(req.body.newPassword));
   await User.updatePassword(user.id, passwordHash);
+  markAccountDirty(req.user.id, req.user.username);
   await RefreshToken.deleteByUserId(user.id);
 
   res.json({ message: 'Kata sandi berhasil diubah. Silakan masuk kembali' });

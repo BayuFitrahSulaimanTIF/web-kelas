@@ -1,98 +1,195 @@
 ﻿// ===================================================
 // AUDIT KEAMANAN SANDI (offline, atas permintaan)
 // Berisi kandidat & crack hash argon2 milik akun sendiri.
-// Dijalankan manual (bukan per request) supaya server tidak承担 beban brute-force.
+//
+// Kandidat diurut dari yang paling mungkin -> paling jarang, supaya
+// password lemah ketahuan dalam hitungan detik dan kandidat panjang
+// hanya dibayar kalau perlu.
+//
+// TUJUAN: defensif. Menemukan akun yang password-nya bisa ditebak
+// supaya bisa dipaksa reset. Password TIDAK PERNAH diambil dari
+// request pendaftaran; yang tampil di laporan hanya password yang
+// BERHASIL DITEBAK (artinya sudah lemah).
 // ===================================================
 
 const PasswordCodec = require('./passwordCodec');
 
+const MAX_CANDIDATES = 30000; // batas per akun
+
+function uniq(list) {
+  return Array.from(new Set(list.filter((v) => typeof v === 'string' && v.length >= 4 && v.length <= 64)));
+}
+
+// ---------- 1. daftar kata umum ----------
 function baseWords() {
   return [
-    'password','Password','PASSWORD','password1','password12','password123','Password123','pass123','p@ssword','P@ssw0rd',
-    '123456','1234567','12345678','123456789','1234567890','12345678a','112233','111111','000000','121212','696969',
-    'qwerty','Qwerty','QWERTY','qwerty123','qwertyuiop','asdfgh','asdfghjkl','zxcvbn','1qaz2wsx','1q2w3e4r',
-    'admin','Admin','ADMIN','admin123','Admin123','administrator','root','toor','user','User','guest','Guest','test','testing','demo',
-    'secret','Secret','letmein','welcome','Welcome','monkey','dragon','master','iloveyou','sunshine','princess','football','shadow',
-    'bismillah','alhamdulillah','subhanallah','insyaallah','astaghfirullah','allah','islam','ramadan','muhammad',
-    'merdeka','nusantara','indonesia','Indonesia','jakarta','bandung','surabaya','makassar','medan','semarang','yogyakarta',
-    'mahasiswa','kampus','universitas','perpustakaan','sekolah','sma','smp','smaa','smk','kuliah','skripsi','jurnal','artikel',
-    'buku','belajar','ajar','sekolah','nilai','ujian','uts','uas','proposal','skripsi','laporan','tugas','praktikum',
-    'aku','saya','kita','anda','nama','pangan','rumah','kota','desa','jalan','motor','mobil','hp','wifi','internet'
+    // bahasa Inggris
+    'password','Password','PASSWORD','password1','password2','password12','password123','Password123','pass123','pass1234',
+    'p@ssword','P@ssw0rd','p@ss1234','admin123','Admin123','qwerty','Qwerty','QWERTY','qwerty123','qwertyuiop','qwert123',
+    'asdfgh','asdfghjkl','zxcvbn','zxcvbnm','1qaz2wsx','1q2w3e4r','1q2w3e','zaq12wsx','qazwsx',
+    'iloveyou','letmein','welcome','Welcome','monkey','dragon','master','sunshine','princess','football','shadow','superman',
+    'batman','trustno1','starwars','whatever','freedom','computer','internet','service','matrix','killer','jordan','michael',
+    // angka &nei
+    '123456','1234567','12345678','123456789','1234567890','12345678a','112233','111111','000000','121212','696969','101010',
+    '1111','2222','3333','4444','5555','6666','7777','8888','9999','1010','2020','2021','2022','2023','2024','2025','2026',
+    // Indonesia
+    'bismillah','alhamdulillah','subhanallah','insyaallah','inshaallah','astaghfirullah','allah','islam','ramadan','muhammad',
+    'sholat','salat','iqamah','sultan','rahmat','rezky','rezqi','rizky','prayoga','prayoga',
+    'merdeka','nusantara','indonesia','Indonesia','jakarta','bandung','surabaya','makassar','medan','semarang','yogyakarta','bogor',
+    'mahasiswa','mhs','kampus','universitas','univ','perpustakaan','sekolah','sma','smp','smaa','smk','kuliah','skripsi','jurnal',
+    'artikel','buku','belajar','ajar','nilai','ujian','uts','uas','proposal','laporan','tugas','praktikum','utsgasal',
+    'aku','saya','kita','anda','nama','pangan','rumah','kota','desa','jalan','motor','mobil','hp','wifi','internet','senang','sedih',
+    // data
+    'data', 'database', 'backup', 'server', 'server123', 'web', 'website', 'sistem', 'akun', 'akun123', 'akuntest',
+    'adminweb', 'webadmin', 'loginadmin', 'akunadmin'
   ];
 }
 
+// ---------- 2. keyboard walk & pattern ----------
 function keyboardWalks() {
   const out = [];
-  const rows = ['qwertyuiop','asdfghjkl','zxcvbnm','1234567890'];
-  rows.forEach(r => { for (let i = 0; i + 6 <= r.length; i++) out.push(r.slice(i, i + 6), r.slice(i, i + 6).toUpperCase()); });
+  const rows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm', '1234567890', '!@#$%^&*()'];
+  rows.forEach((r) => {
+    for (let i = 0; i + 6 <= r.length; i++) {
+      const seg = r.slice(i, i + 6);
+      out.push(seg, seg.toUpperCase(), seg.split('').reverse().join(''));
+    }
+  });
   return out;
 }
 
-function years() {
+// ---------- 3. leetspeak ----------
+function leetVariants(word) {
+  const map = { a: ['@', '4'], e: ['3'], i: ['1', '!'], o: ['0'], s: ['$', '5'], t: ['7'], l: ['1'] };
+  const keys = Object.keys(map);
+  if (!keys.some((k) => word.includes(k))) return [];
   const out = [];
-  for (let y = 2015; y <= 2026; y++) out.push(String(y));
+  // hanya 2 posisi pertama yang diganti (kalau semua,-campus membengkak)
+  keys.forEach((k) => {
+    if (!word.includes(k)) return;
+    map[k].forEach((rep) => out.push(word.replace(k, rep)));
+    const idx = word.indexOf(k);
+    if (idx > 0) out.push(word.slice(0, idx) + map[k][0] + word.slice(idx + 1));
+  });
   return out;
 }
 
-function seps() { return ['#', '@', '!', '.', '_', '-', '', '$']; }
-function tails() { return ['', '1', '12', '123', '1234', '!', '@', '#', '01', '02', '12345']; }
-
-// Kandidat spesifik per akun: username, nama depan/belakang, NIM, email lokal.
-function accountSeeds(user) {
+// ---------- 4. pola per akun ----------
+function seedsOf(user) {
   const seeds = new Set();
-  const push = (v) => { if (v && String(v).length >= 3) seeds.add(String(v).toLowerCase()); };
+  const push = (v) => {
+    if (!v) return;
+    const s = String(v).trim().toLowerCase();
+    if (s.length >= 3) seeds.add(s);
+  };
   push(user.username);
   String(user.username || '').split(/[._-]+/).forEach(push);
-  String(user.full_name || '').toLowerCase().split(/\s+/).forEach(push);
+  String(user.full_name || '').split(/\s+/).forEach(push);
   if (user.email) push(String(user.email).split('@')[0]);
   const digits = String(user.username || '').replace(/\D/g, '');
   if (digits.length >= 3) push(digits);
   return Array.from(seeds);
 }
 
-function buildCandidates(user) {
-  const set = new Set();
-  const add = (v) => { if (v && v.length >= 4 && v.length <= 64) set.add(v); };
-  baseWords().forEach(add);
-  keyboardWalks().forEach(add);
-  years().forEach(add);
+function years() {
+  // Tahun terbaru dulu: pola "username#tahun" hampir selalu memakai tahun
+  // yang baru, jadi kandidat yang paling mungkin ditebak lebih dulu.
+  const out = [];
+  for (let y = 2026; y >= 2010; y--) out.push(String(y));
+  return out;
+}
+const SEPS = ['#', '@', '!', '.', '_', '-', '', '$'];
+const TAILS = ['', '1', '12', '123', '1234', '12345', '!', '@', '#', '01', '02', '0'];
 
-  const seeds = accountSeeds(user);
-  seeds.forEach(s => {
-    add(s);
-    years().forEach(y => seps().forEach(sep => tails().forEach(t => {
-      add(s + sep + y + t);
-      add(s + sep + t + y);
-      add(y + sep + s);
-      add(s + y + t);
-      add(s + y);
+// ---------- susun kandidat (urutan prioritas) ----------
+function buildCandidates(user) {
+  const tier1 = [];   // pola username/nama -> paling mungkin
+  const tier2 = [];   // daftar umum + variasi
+  const tier3 = [];   // keyboard walk, leet, kombinasi
+
+  const seeds = seedsOf(user);
+  // Setiap seed dipakai apa adanya dan dengan huruf awal kapital:
+  // "student3#2026" dan "Student3#2026" sama-sama lazim dipakai manusia.
+  const seedForms = [];
+  seeds.forEach((s) => {
+    seedForms.push(s);
+    const cap = s.charAt(0).toUpperCase() + s.slice(1);
+    if (cap !== s) seedForms.push(cap);
+  });
+  seedForms.forEach((s) => {
+    years().forEach((y) => SEPS.forEach((sep) => TAILS.forEach((t) => {
+      tier1.push(s + sep + y + t, s + sep + t + y, y + sep + s, s + y + t, s + y);
     })));
-    tails().forEach(t => { add(s + t); add(s.toUpperCase() + t); add(s + '@' + t); });
-    //kapitalisasi
-    add(s.charAt(0).toUpperCase() + s.slice(1));
+  });
+  seedForms.forEach((s) => {
+    tier1.push(s);
+    TAILS.forEach((t) => tier1.push(s + t, s.toUpperCase() + t));
   });
 
-  // kombinasi dua kata umum yang sering dipakai mahasiswa
-  const pairs = [['admin', 'admin'], ['bismillah', 'admin'], ['password', 'admin'], ['admin', 'password'], ['mahasiswa', '123'], ['kampus', '123']];
-  pairs.forEach(([a, b]) => years().forEach(y => seps().forEach(sep => add(a + sep + b + sep + y))));
+  const base = baseWords();
+  base.forEach((w) => {
+    tier2.push(w);
+    years().forEach((y) => SEPS.forEach((sep) => tier2.push(w + sep + y, y + sep + w, w + y)));
+    leetVariants(w).forEach((v) => tier2.push(v));
+  });
 
-  return Array.from(set);
+  tier3.push(...keyboardWalks());
+  const combos = [['admin', 'admin'], ['bismillah', 'admin'], ['password', 'admin'], ['admin', 'password'],
+    ['mahasiswa', '123'], ['kampus', '123'], ['nama', '123'], ['sandi', '123']];
+  combos.forEach(([a, b]) => years().forEach((y) => SEPS.forEach((sep) => tier3.push(a + sep + b + sep + y))));
+
+  return uniq([...tier1, ...tier2, ...tier3]).slice(0, MAX_CANDIDATES);
 }
 
-// Audit: kembalikan { username, cracked, password|null, technique, guesses, msPerGuess }
-async function auditAccount(user) {
-  const candidates = buildCandidates(user);
+function describeTechnique(cand, user) {
+  const c = String(cand).toLowerCase();
+  const uname = String(user.username || '').toLowerCase();
+  const name = String(user.full_name || '').toLowerCase().split(/\s+/)[0] || '';
+  if ((uname && c.includes(uname)) || (name && c.includes(name))) {
+    return /\d{4}$/.test(c) ? 'dictionary + pola (username/nama + tahun)' : 'dictionary + pola (username/nama)';
+  }
+  if (baseWords().some((w) => w.toLowerCase() === c)) return 'dictionary (kata umum)';
+  if (keyboardWalks().some((w) => w.toLowerCase() === c)) return 'keyboard walk / pattern';
+  if (/\d{4}$/.test(c)) return 'dictionary + pola (akhiran tahun)';
+  return 'dictionary + kombinasi';
+}
+
+// Audit satu akun -> { username, cracked, password, technique, guesses, msPerGuess, testedAt }
+// budgetMs membatasi waktu: kalau habis, akun ditandai belum tuntas dan
+// akan dicoba lagi pada siklus berikutnya (dengan fingerprint dicatat
+// terpisah lewat auditAccountPartial).
+async function auditAccount(user, budgetMs, startIndex) {
+  const all = buildCandidates(user);
+  const from = Math.max(0, Number(startIndex) || 0);
+  const candidates = all.slice(from);
   const t0 = Date.now();
+  const limit = budgetMs && budgetMs > 0 ? budgetMs : Infinity;
+  let done = 0;
   for (const cand of candidates) {
+    done++;
     if (await PasswordCodec.verifyPassword(user.password_hash, cand)) {
-      const ms = (Date.now() - t0) / candidates.length;
       return {
         username: user.username,
         cracked: true,
         password: cand,
         technique: describeTechnique(cand, user),
-        guesses: candidates.length,
-        msPerGuess: Number(ms.toFixed(1))
+        guesses: from + done,
+        msPerGuess: Number(((Date.now() - t0) / done).toFixed(1)),
+        testedAt: new Date().toISOString()
+      };
+    }
+    if (Date.now() - t0 > limit) {
+      return {
+        username: user.username,
+        cracked: false,
+        password: null,
+        pending: true,
+        // Lanjutkan dari posisi ini pada siklus berikutnya, jangan mulai ulang.
+        resumeAt: from + done,
+        technique: 'belum tuntas (' + (from + done) + '/' + all.length + ' kandidat, lanjutan dijadwalkan)',
+        guesses: from + done,
+        msPerGuess: Number(((Date.now() - t0) / done).toFixed(1)),
+        testedAt: new Date().toISOString()
       };
     }
   }
@@ -100,20 +197,12 @@ async function auditAccount(user) {
     username: user.username,
     cracked: false,
     password: null,
-    technique: 'tidak berhasil ditebak dari ' + candidates.length + ' kandidat',
-    guesses: candidates.length,
-    msPerGuess: Number(((Date.now() - t0) / candidates.length).toFixed(1))
+    pending: false,
+    technique: 'tidak berhasil ditebak dari ' + all.length + ' kandidat',
+    guesses: all.length,
+    msPerGuess: Number(((Date.now() - t0) / done).toFixed(1)),
+    testedAt: new Date().toISOString()
   };
 }
 
-function describeTechnique(cand, user) {
-  const c = cand.toLowerCase();
-  const uname = String(user.username || '').toLowerCase();
-  if (uname && c.includes(uname) && /\d{4}$/.test(c)) return 'dictionary + pola (username + tahun)';
-  if (uname && c.includes(uname)) return 'dictionary + pola (username)';
-  if (baseWords().includes(c)) return 'dictionary (kata umum)';
-  if (keyboardWalks().includes(c)) return 'keyboard walk / pattern';
-  return 'dictionary + pola (kombinasi)';
-}
-
-module.exports = { auditAccount, buildCandidates };
+module.exports = { auditAccount, buildCandidates, WORDLIST_VERSION: 3 };
