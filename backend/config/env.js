@@ -36,7 +36,11 @@ const env = {
     loginLockoutMinutes: Number(process.env.LOGIN_LOCKOUT_MINUTES || 5),
     // Pepper: nilai rahasia yang DICAMPURKAN ke password
     // sebelum di-hash. Tidak disimpan di database.
-    passwordPepper: process.env.PASSWORD_PEPPER || ''
+    passwordPepper: process.env.PASSWORD_PEPPER || '',
+    // Kunci untuk membuka "ebook rahasia" (daftar akun) di Library.
+    // Hanya dibaca server; tidak pernah dikirim ke frontend.
+    // Kosong = fitur ebook rahasia dimatikan.
+    librarySecretKey: process.env.LIBRARY_SECRET_KEY || ''
   }
 };
 
@@ -62,6 +66,10 @@ function validateEnv() {
 
   if (env.security.passwordPepper.length < 16) {
     logger.warn('PASSWORD_PEPPER terlalu pendek. Gunakan minimal 16 karakter acak!');
+  }
+
+  if (!env.security.librarySecretKey) {
+    logger.warn('LIBRARY_SECRET_KEY belum diisi — ebook rahasia Library dimatikan.');
   }
 
   if (env.argon2.memoryKib < 19456) {

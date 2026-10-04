@@ -5989,7 +5989,78 @@
         const base = currentFilteredDocs();
         const results = q ? librarySearch(q, base) : base;
         renderLibraryResults(results, q);
+        updateSecretLibrary(q);
       }
+
+      // ---------- Ebook rahasia (daftar akun) ----------
+      // Tidak pernah ada di folder/scan library: muncul hanya kalau kata kunci
+      // diketik di pencarian, hilang lagi saat pencarian dikosongkan. Kunci dan
+      // pengecekan role NCAA di server, jadi akun STUDENT tidak akan menemukan
+      // apa pun walau kata kuncinya ditebak.
+      const SECRET_QUERY_MIN = 8;
+      let secretDoc = null;
+      let secretQueryTimer = null;
+
+      function updateSecretLibrary(q) {
+        window.clearTimeout(secretQueryTimer);
+        if (secretDoc) {
+          secretDoc = null;
+          const active = libraryResultsEl.querySelector('[data-secret-doc]');
+          if (active) {
+            const grid = active.closest('.library-grid');
+            active.remove();
+            if (grid && !grid.children.length) grid.remove();
+            const empty = libraryResultsEl.querySelector('.library-empty');
+            if (empty) empty.remove();
+          }
+        }
+        if (q.length < SECRET_QUERY_MIN) return;
+        secretQueryTimer = window.setTimeout(function () {
+          fetch(API_ORIGIN + '/api/library/secret?key=' + encodeURIComponent(q), { headers: authHeaders() })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+              if (!data || !data.content || libraryInput.value.trim() !== q) return;
+              secretDoc = { title: data.title || 'Dokumen Rahasia', fileUrl: '', text: data.content, isFile: true, typeKey: 'rahasia', secret: true };
+              prependSecretCard();
+            })
+            .catch(function () {});
+        }, 250);
+      }
+
+      function secretCardHtml(d) {
+        return '<div class="library-item" data-secret-doc="1">' +
+          '<a class="library-item-link" href="#" data-secret-open="1">' +
+          '<div class="library-item-cover library-item-cover-artikel"><span class="cover-init">TXT</span></div>' +
+          '<div class="library-item-body"><div class="library-item-title">' + escapeHtml(d.title) + '</div>' +
+          '<div class="library-item-meta"><span class="lib-meta-badge lib-meta-style">RAHASIA</span></div></div>' +
+          '</a></div>';
+      }
+
+      function prependSecretCard() {
+        if (!secretDoc) return;
+        const grid = libraryResultsEl.querySelector('.library-grid');
+        if (grid) {
+          grid.insertAdjacentHTML('afterbegin', secretCardHtml(secretDoc));
+          return;
+        }
+        const empty = libraryResultsEl.querySelector('.library-empty');
+        if (empty) {
+          empty.insertAdjacentHTML('afterend',
+            '<p class="library-count">1 ebook rahasia ditemukan</p>' +
+            '<div class="library-grid">' + secretCardHtml(secretDoc) + '</div>');
+          return;
+        }
+        libraryResultsEl.insertAdjacentHTML('afterbegin',
+          '<p class="library-count">1 ebook rahasia ditemukan</p>' +
+          '<div class="library-grid">' + secretCardHtml(secretDoc) + '</div>');
+      }
+
+      libraryResultsEl.addEventListener('click', function (e) {
+        const link = e.target.closest('[data-secret-open]');
+        if (!link || !secretDoc) return;
+        e.preventDefault();
+        openLibraryReader(secretDoc);
+      });
 
       loadLibraryFiles();
 
@@ -6607,14 +6678,27 @@
       const readerDownload = document.getElementById('reader-download');
 
       function openLibraryReader(doc) {
-        const abs = API_ORIGIN + doc.fileUrl;
-        const ext = (doc.fileUrl.split('.').pop() || '').toLowerCase();
         readerTitle.textContent = doc.title;
-        readerOpenTab.href = abs;
-        readerDownload.href = abs;
         readerFrame.innerHTML = '';
         // ponytail: bersihkan blob URL lama jika ada
         if (readerFrame._blobUrl) { try{ URL.revokeObjectURL(readerFrame._blobUrl); }catch{} readerFrame._blobUrl=null; }
+        // Dokumen rahasia: isinya sudah di memori (hasil /api/library/secret),
+        // jadi tidak ada URL untuk dibuka/diunduh.
+        if (doc.secret && doc.text) {
+          readerOpenTab.hidden = true;
+          readerDownload.hidden = true;
+          const pre = document.createElement('pre');
+          pre.className = 'reader-text';
+          pre.textContent = doc.text;
+          readerFrame.appendChild(pre);
+          return;
+        }
+        readerOpenTab.hidden = false;
+        readerDownload.hidden = false;
+        const abs = API_ORIGIN + doc.fileUrl;
+        const ext = (doc.fileUrl.split('.').pop() || '').toLowerCase();
+        readerOpenTab.href = abs;
+        readerDownload.href = abs;
         if (ext === 'pdf' || ext === 'txt') {
           const loading = document.createElement('div');
           loading.className = 'reader-status';

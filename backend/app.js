@@ -11,7 +11,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const multer = require('multer');
 const { env } = require('./config/env');
-const { pingDatabase } = require('./config/database');
+const { pingDatabase, db } = require('./config/database');
 const authenticate = require('./middlewares/authenticate');
 const authRoutes = require('./routes/auth');
 const ssoRoutes = require('./routes/sso');
@@ -495,6 +495,47 @@ function resolveSavedPath(relPath) {
   if (full.indexOf(root) !== 0) return null;
   return { full, relative: decoded };
 }
+
+// ============ EBOOK RAHASIA: DAFTAR AKUN (admin + kunci dari .env) ============
+// Hanya ada di atas permintaan: tidak pernah masuk scan library, tidak muncul
+// di kategori, tidak tersimpan sebagai file. Isinya dibuat ulang dari tabel
+// users setiap kali dipanggil, jadi akun baru otomatis ikut masuk.
+app.get('/api/library/secret', authenticate, requireLibraryAdmin, async (req, res) => {
+  const key = String(req.query.key || '');
+  if (!env.security.librarySecretKey || key !== env.security.librarySecretKey) {
+    // Pesan sengaja dibuat generik: tidak membocorkan bahwa kuncinya salah.
+    return res.status(404).json({ message: 'Tidak ada ebook yang cocok' });
+  }
+  try {
+    const [rows] = await db.query(
+      `SELECT id, username, email, role, is_active, created_at, last_login_at
+         FROM users
+        ORDER BY id ASC`
+    );
+    const pad = (v, n) => String(v == null ? '-' : v).padEnd(n, ' ');
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const lines = [
+      'DAFTAR AKUN TERDAFTAR - SISTEMA KULIAH PERGURUAN TINGGI (SKPT)',
+      'Dibuat otomatis oleh server pada: ' + now,
+      'Total akun: ' + rows.length,
+      '',
+      pad('ID', 5) + pad('USERNAME', 22) + pad('EMAIL', 34) + pad('ROLE', 11) + pad('STATUS', 8) + pad('TERDAFTAR', 21) + 'LOGIN TERAKHIR'
+    ];
+    rows.forEach((u) => {
+      lines.push(
+        pad(u.id, 5) + pad(u.username, 22) + pad(u.email, 34) + pad(u.role, 11) +
+        pad(u.is_active ? 'aktif' : 'nonaktif', 8) +
+        pad(String(u.created_at || '').slice(0, 19), 21) +
+        String(u.last_login_at || '-')
+      );
+    });
+    lines.push('');
+    lines.push('Catatan: password tidak ditampilkan karena tersimpan sebagai hash (argon2/bcrypt).');
+    res.json({ fileName: 'akun-terdaftar.txt', title: 'Akun Terdaftar (Rahasia)', content: lines.join('\n') });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 app.get('/api/library/saved', authenticate, (req, res) => {
   const data = readSaved();

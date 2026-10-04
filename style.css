@@ -4375,6 +4375,20 @@ font-family: 'VT323', 'Courier New', monospace;
   position: relative;
   background: #525659;
 }
+/* Teks dokumen (mis. ebook rahasia) ditampilkan di dalam reader, bukan diunduh. */
+.reader-frame .reader-text {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 1.1rem 1.3rem;
+  overflow: auto;
+  background: #ffffff;
+  color: #16233e;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  white-space: pre;
+}
 .reader-frame iframe {
   width: 100%;
   height: 100%;
