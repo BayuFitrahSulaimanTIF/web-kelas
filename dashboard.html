@@ -342,7 +342,9 @@
           <a href="#class" data-page="class" id="nav-class-toggle">Class</a>
         </li>
         <li><a href="#community" data-page="community">Community</a></li>
-        <li><a href="#news" data-page="news">News</a></li>
+        <li class="nav-drop" id="nav-campuss-drop">
+          <a href="#news" data-page="news" id="nav-campuss-toggle">Campuss</a>
+        </li>
         <li><a href="#library" data-page="library">Library</a></li>
       </ul>
     </nav>
@@ -353,6 +355,14 @@
     <a href="#class" data-page="class" data-nav-sub="1" class="nav-drop-link">KRS</a>
     <a href="#class" data-page="class" data-nav-sub="1" data-nav-view="jadwal" class="nav-drop-link">Jadwal</a>
     <a href="#class" data-page="class" data-nav-sub="1" data-nav-view="students" class="nav-drop-link">Students</a>
+  </div>
+
+  <!-- ================== SUB-NAVIGASI CAMPUSS (dropdown) ================== -->
+  <div class="nav-dropdown" id="nav-campuss-menu" style="display:none;">
+    <a href="#news" data-page="news" data-nav-sub="1" data-campuss-view="news" class="nav-drop-link">News</a>
+    <!-- ponytail: Organitation &amp; Calender masih kosong -> hanya kasih info, belum ada halaman -->
+    <a href="#news" data-campuss-view="organitation" class="nav-drop-link">Organitation</a>
+    <a href="#news" data-campuss-view="calender" class="nav-drop-link">Calender</a>
   </div>
 
   <!-- ================== TOMBOL HAMBURGER ================== -->
@@ -438,9 +448,9 @@
           <a href="#community" data-page="community" class="side-link">Community</a>
         </li>
 
-        <!-- NEWS -->
+        <!-- CAMPUSS (isi: News) -->
         <li class="tree-node">
-          <a href="#news" data-page="news" class="side-link">News</a>
+          <a href="#news" data-page="news" class="side-link">Campuss</a>
         </li>
 
         <!-- LIBRARY -->
@@ -1376,7 +1386,9 @@
         if (index === 0) storyQueue();
         else storyHideChrome();
         syncClassMenuActive();
+        syncCampussMenuActive();
         closeClassMenu();
+        closeCampussMenu();
       }
 
       function skeletonBlocks(kind) {
@@ -1984,6 +1996,70 @@
         });
       }
 
+      // ---------- Sub-navigasi Campuss (News / Organitation / Calender) ----------
+      // Nav "Campuss" memakai data-page="news" supaya tetap memakai halaman
+      // News yang sudah ada (index halaman tidak berubah). Organitation dan
+      // Calender sengaja kosong: klik hanya memunculkan banner informasi.
+      // var (bukan const) supaya tidak kena TDZ saat goToPage() dipanggil
+      // sebelum blok ini dievaluasi.
+      var campussToggle = document.getElementById('nav-campuss-toggle');
+      var campussMenu = document.getElementById('nav-campuss-menu');
+      var campussLinks = campussMenu ? campussMenu.querySelectorAll('a') : [];
+      function openCampussMenu() {
+        if (!campussToggle || !campussMenu) return;
+        const r = campussToggle.getBoundingClientRect();
+        campussMenu.style.left = Math.max(6, Math.min(r.left, window.innerWidth - 170)) + 'px';
+        campussMenu.style.display = 'block';
+        campussToggle.setAttribute('aria-expanded', 'true');
+      }
+      function closeCampussMenu() {
+        if (!campussMenu) return;
+        campussMenu.style.display = 'none';
+        if (campussToggle) campussToggle.setAttribute('aria-expanded', 'false');
+      }
+      function syncCampussMenuActive() {
+        const onCampuss = !!(campussToggle && campussToggle.classList.contains('active'));
+        Array.prototype.forEach.call(campussLinks, function (l) {
+          l.classList.toggle('active', onCampuss && l.dataset.campussView === 'news');
+        });
+      }
+      if (campussToggle && campussMenu) {
+        let campussMenuTimer = null;
+        campussToggle.addEventListener('mouseenter', function () {
+          window.clearTimeout(campussMenuTimer);
+          openCampussMenu();
+        });
+        campussToggle.addEventListener('mouseleave', function () {
+          campussMenuTimer = window.setTimeout(closeCampussMenu, 150);
+        });
+        campussMenu.addEventListener('mouseenter', function () {
+          window.clearTimeout(campussMenuTimer);
+        });
+        campussMenu.addEventListener('mouseleave', function () {
+          campussMenuTimer = window.setTimeout(closeCampussMenu, 150);
+        });
+        campussToggle.addEventListener('click', function () {
+          if (campussMenu.style.display === 'block') closeCampussMenu();
+          else openCampussMenu();
+        });
+        campussLinks.forEach(function (link) {
+          link.addEventListener('click', function (e) {
+            e.preventDefault();
+            closeCampussMenu();
+            if (link.dataset.navSub === '1') return; // News: navigasi ditangani nav biasa
+            showMaintenanceNotice(link.textContent.trim());
+          });
+        });
+        document.addEventListener('click', function (e) {
+          if (campussMenu.style.display === 'block' && !campussMenu.contains(e.target) && !campussToggle.contains(e.target)) {
+            closeCampussMenu();
+          }
+        });
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') closeCampussMenu();
+        });
+      }
+
       // Pulihkan halaman terakhir yang dikunjungi (mis. Library) setelah
       // tab direload oleh browser karena lama ditinggalkan.
       // DITUNDA dengan setTimeout agar semua variabel (const chatLoading,
@@ -2502,7 +2578,7 @@
           const m = document.getElementById('scheduleModal');
           if (!m || !m.classList.contains('show')) return;
           if (m.contains(e.target)) return;
-          const isNav = e.target.closest && e.target.closest('.nav-links a, .side-link, .tree-item, #nav-class-menu a, .side-menu, .nav-links');
+          const isNav = e.target.closest && e.target.closest('.nav-links a, .side-link, .tree-item, #nav-class-menu a, #nav-campuss-menu a, .side-menu, .nav-links');
           if (isNav) { e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); }
         }, true);
         if(formScrollArea){
