@@ -6027,13 +6027,16 @@
         }, 250);
       }
 
+      // Kartu rahasia memakai <button>, bukan <a>: supaya tidak muncul menu
+      // "buka di tab baru" yang justru membuka dashboard lagi, dan tidak
+      // tertangkap listener umum `a.library-item-link`.
       function secretCardHtml(d) {
         return '<div class="library-item" data-secret-doc="1">' +
-          '<a class="library-item-link" href="#" data-secret-open="1">' +
+          '<button type="button" class="library-item-link library-item-open" data-secret-open="1">' +
           '<div class="library-item-cover library-item-cover-artikel"><span class="cover-init">TXT</span></div>' +
           '<div class="library-item-body"><div class="library-item-title">' + escapeHtml(d.title) + '</div>' +
           '<div class="library-item-meta"><span class="lib-meta-badge lib-meta-style">RAHASIA</span></div></div>' +
-          '</a></div>';
+          '</button></div>';
       }
 
       function prependSecretCard() {
