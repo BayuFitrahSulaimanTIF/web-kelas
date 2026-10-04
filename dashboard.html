@@ -6690,7 +6690,8 @@
         // ponytail: bersihkan blob URL lama jika ada
         if (readerFrame._blobUrl) { try{ URL.revokeObjectURL(readerFrame._blobUrl); }catch{} readerFrame._blobUrl=null; }
         // Dokumen rahasia: isinya sudah di memori (hasil /api/library/secret),
-        // jadi tidak ada URL untuk dibuka/diunduh.
+        // jadi tidak ada URL untuk dibuka/diunduh. Overlay harus dibuka di
+        // sini juga — cabang ini return sebelum baris pembuka overlay di bawah.
         if (doc.secret && doc.text) {
           readerOpenTab.hidden = true;
           readerDownload.hidden = true;
@@ -6698,6 +6699,7 @@
           pre.className = 'reader-text';
           pre.textContent = doc.text;
           readerFrame.appendChild(pre);
+          readerOverlay.classList.add('open');
           return;
         }
         readerOpenTab.hidden = false;
