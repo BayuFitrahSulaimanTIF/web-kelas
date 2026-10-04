@@ -6059,6 +6059,10 @@
         const link = e.target.closest('[data-secret-open]');
         if (!link || !secretDoc) return;
         e.preventDefault();
+        // stopImmediatePropagation wajib: listener umum .library-item-link ada
+        // di elemen yang sama dan akan menimpa reader dengan href="#" (halaman
+        // dashboard) sehingga muncul "2 web kelas".
+        e.stopImmediatePropagation();
         openLibraryReader(secretDoc);
       });
 
