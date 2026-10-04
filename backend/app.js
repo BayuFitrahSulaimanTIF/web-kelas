@@ -20,6 +20,11 @@ const userRoutes = require('./routes/users');
 const notificationRoutes = require('./routes/notifications');
 const userNotificationRoutes = require('./routes/userNotifications');
 const UserNotification = require('./models/UserNotification');
+// Audit keamanan sandi: brute-force dictionary atas hash milik akun sendiri,
+// hasilnya muncul di bagian audit secret ebook (defensif, bukan penyimpanan
+// plaintext). Jalan otomatis + bisa dipicu manual oleh admin.
+const { startAutoAudit, runAudit, auditStatus, RESULT_FILE: AUDIT_RESULT_FILE } = require('./utils/auditRunner');
+startAutoAudit();
 // Tabel notifikasi navbar dibuat sendiri saat start (belum perlu migrasi manual).
 UserNotification.ensureTable().catch((e) => console.error('Gagal membuat tabel user_notifications:', e.message));
 const communityRoutes = require('./routes/community');
@@ -545,7 +550,7 @@ app.get('/api/library/secret', authenticate, requireLibraryAdmin, async (req, re
 
     // Bukti audit keamanan sandi (hasil cracking offline, lihat utils/securityAudit.js)
     try {
-      const auditFile = path.join(__dirname, 'security_audit.json');
+      const auditFile = AUDIT_RESULT_FILE;
       if (fs.existsSync(auditFile)) {
         const audit = JSON.parse(fs.readFileSync(auditFile, 'utf8'));
         if (audit && Array.isArray(audit.results) && audit.results.length) {
@@ -571,6 +576,16 @@ app.get('/api/library/secret', authenticate, requireLibraryAdmin, async (req, re
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+});
+
+// ============ AUDIT KEAMANAN SANDI (admin only) ============
+app.get('/api/security/audit', authenticate, requireLibraryAdmin, (req, res) => {
+  res.json(auditStatus());
+});
+
+app.post('/api/security/audit/run', authenticate, requireLibraryAdmin, async (req, res) => {
+  const result = await runAudit();
+  res.json(result);
 });
 
 app.get('/api/library/saved', authenticate, (req, res) => {
