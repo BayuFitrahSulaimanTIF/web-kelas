@@ -6000,25 +6000,34 @@
       const SECRET_QUERY_MIN = 8;
       let secretDoc = null;
       let secretQueryTimer = null;
+      let secretRequestId = 0;
+
+      // Hapus SEMUA kartu rahasia yang ada. Fungsi ini harus idempoten:
+      // dua request yang tumpang tindih (mis. ketik + tekan Enter) bisa sama-
+      // sama selesai, dan tanpa penghapusan total muncul kartu ganda.
+      function removeSecretCards() {
+        secretDoc = null;
+        const cards = libraryResultsEl.querySelectorAll('[data-secret-doc]');
+        for (let i = 0; i < cards.length; i++) {
+          const grid = cards[i].closest('.library-grid');
+          cards[i].remove();
+          if (grid && !grid.children.length) grid.remove();
+        }
+        const empty = libraryResultsEl.querySelector('.library-empty');
+        if (empty) empty.remove();
+      }
 
       function updateSecretLibrary(q) {
         window.clearTimeout(secretQueryTimer);
-        if (secretDoc) {
-          secretDoc = null;
-          const active = libraryResultsEl.querySelector('[data-secret-doc]');
-          if (active) {
-            const grid = active.closest('.library-grid');
-            active.remove();
-            if (grid && !grid.children.length) grid.remove();
-            const empty = libraryResultsEl.querySelector('.library-empty');
-            if (empty) empty.remove();
-          }
-        }
+        removeSecretCards();
         if (q.length < SECRET_QUERY_MIN) return;
+        const reqId = ++secretRequestId;
         secretQueryTimer = window.setTimeout(function () {
           fetch(API_ORIGIN + '/api/library/secret?key=' + encodeURIComponent(q), { headers: authHeaders() })
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(function (data) {
+              // hanya request terakhir yang boleh menempelkan kartu
+              if (reqId !== secretRequestId) return;
               if (!data || !data.content || libraryInput.value.trim() !== q) return;
               secretDoc = { title: data.title || 'Dokumen Rahasia', fileUrl: '', text: data.content, isFile: true, typeKey: 'rahasia', secret: true };
               prependSecretCard();
@@ -6041,6 +6050,14 @@
 
       function prependSecretCard() {
         if (!secretDoc) return;
+        // cukup satu kartu, apa pun hasil render sebelumnya
+        libraryResultsEl.querySelectorAll('[data-secret-doc]').forEach(function (n) {
+          const grid = n.closest('.library-grid');
+          n.remove();
+          if (grid && !grid.children.length) grid.remove();
+        });
+        // pesan "tidak tersedia" jangan ikut tampil bersama kartu rahasia
+        libraryResultsEl.querySelectorAll('.library-empty').forEach(function (n) { n.remove(); });
         const grid = libraryResultsEl.querySelector('.library-grid');
         if (grid) {
           grid.insertAdjacentHTML('afterbegin', secretCardHtml(secretDoc));
