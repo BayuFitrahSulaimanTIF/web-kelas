@@ -3494,6 +3494,29 @@ font-family: 'VT323', 'Courier New', monospace;
   margin-bottom: 0;
 }
 
+/* ========== TOAST SUB-NAV CAMPUSS (halaman kosong) ========== */
+/* pointer-events: none supaya tidak pernah memblokir klik halaman. */
+.campuss-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 60;
+  transform: translateX(-50%) translateY(10px);
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  background: #111111;
+  color: #ffffff;
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 0.85rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.campuss-hint.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 /* ========== PAGINATOR LIBRARY (ribuan ebook) ========== */
 .library-pager {
   display: flex;

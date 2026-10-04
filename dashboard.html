@@ -365,6 +365,9 @@
     <a href="#news" data-campuss-view="calender" class="nav-drop-link">Calender</a>
   </div>
 
+  <!-- Info ringan untuk sub-nav yang masih kosong (tidak memblokir klik) -->
+  <div class="campuss-hint" id="campuss-hint" role="status" aria-live="polite"></div>
+
   <!-- ================== TOMBOL HAMBURGER ================== -->
   <button class="hamburger" id="hamburger-btn" aria-label="Menu">&gt;</button>
 
@@ -1999,12 +2002,25 @@
       // ---------- Sub-navigasi Campuss (News / Organitation / Calender) ----------
       // Nav "Campuss" memakai data-page="news" supaya tetap memakai halaman
       // News yang sudah ada (index halaman tidak berubah). Organitation dan
-      // Calender sengaja kosong: klik hanya memunculkan banner informasi.
-      // var (bukan const) supaya tidak kena TDZ saat goToPage() dipanggil
-      // sebelum blok ini dievaluasi.
+      // Calender sengaja kosong: klik hanya memunculkan toast ringan.
+      // Catatan: jangan pakai showMaintenanceNotice() di sini — overlay-nya
+      // menutup seluruh layar (rgba + z-index) sehingga halaman terkunci dan
+      // isi sebelumnya tetap kelihatan di bawah overlay.
       var campussToggle = document.getElementById('nav-campuss-toggle');
       var campussMenu = document.getElementById('nav-campuss-menu');
       var campussLinks = campussMenu ? campussMenu.querySelectorAll('a') : [];
+      var campussHint = document.getElementById('campuss-hint');
+      var campussHintTimer = null;
+      var campussIndex = campussToggle ? Array.prototype.indexOf.call(navLinks, campussToggle) : -1;
+      function showCampussHint(text) {
+        if (!campussHint) return;
+        campussHint.textContent = text + ' sedang disiapkan. Mohon ditunggu yah.';
+        campussHint.classList.add('show');
+        window.clearTimeout(campussHintTimer);
+        campussHintTimer = window.setTimeout(function () {
+          campussHint.classList.remove('show');
+        }, 2600);
+      }
       function openCampussMenu() {
         if (!campussToggle || !campussMenu) return;
         const r = campussToggle.getBoundingClientRect();
@@ -2046,8 +2062,12 @@
           link.addEventListener('click', function (e) {
             e.preventDefault();
             closeCampussMenu();
-            if (link.dataset.navSub === '1') return; // News: navigasi ditangani nav biasa
-            showMaintenanceNotice(link.textContent.trim());
+            // News: sub-navigasi ini harus benar-benar pindah halaman.
+            if (link.dataset.navSub === '1') {
+              if (campussIndex >= 0) goToPage(campussIndex, false);
+              return;
+            }
+            showCampussHint(link.textContent.trim());
           });
         });
         document.addEventListener('click', function (e) {
