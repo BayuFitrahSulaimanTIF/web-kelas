@@ -80,8 +80,8 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// ponytail: wajib internet — jika offline, halaman HTML (/) diblokir dengan
-// ponytail: server tetap layani HTML bahkan saat offline — blokir ditangani
+// ponytail: wajib internet â€” jika offline, halaman HTML (/) diblokir dengan
+// ponytail: server tetap layani HTML bahkan saat offline â€” blokir ditangani
 // di frontend (connectivity.js) agar tidak false-positive "tidak bisa diakses padahal online"
 // (fetch generate_204 di server rawan terblokir firewall/proxy). Cache tetap no-store.
 
@@ -118,7 +118,7 @@ app.use('/library/files', express.static(LIBRARY_DIR, {
   }
 }));
 
-// Foto profil pengguna (avatar) — akses publik untuk ditampilkan
+// Foto profil pengguna (avatar) â€” akses publik untuk ditampilkan
 const { AVATAR_DIR } = require('./utils/avatarUpload');
 app.use('/uploads/avatars', express.static(AVATAR_DIR, {
   setHeaders: (res)=>res.set('X-Content-Type-Options','nosniff')
@@ -130,14 +130,14 @@ app.get('/api/library/files', (req, res) => {
     // ?refresh=1 memaksa scan ulang (mis. setelah file ditambah lewat Explorer)
     const files = listLibraryFiles(req.query.refresh === '1');
     // ponytail: style/tahun/bahasa disimpan terpisah (library_meta.json) supaya
-    // nama file tetap bersih judul saja — tidak ada prefix STYLE_LANG_YEAR.
+    // nama file tetap bersih judul saja â€” tidak ada prefix STYLE_LANG_YEAR.
     const payload = {
       files: files.map((f) => {
         const m = meta[f.relativePath];
         return m ? Object.assign({}, f, m) : f;
       })
     };
-    // Ribuan ebook = JSON >1 MB; zlib bawaan Node memangkas ±85% tanpa dependency baru.
+    // Ribuan ebook = JSON >1 MB; zlib bawaan Node memangkas Â±85% tanpa dependency baru.
     if (String(req.headers['accept-encoding'] || '').indexOf('gzip') !== -1) {
       res.set('Content-Type', 'application/json; charset=utf-8');
       res.set('Content-Encoding', 'gzip');
@@ -378,7 +378,7 @@ app.patch('/api/library/files', authenticate, requireLibraryAdmin, (req, res) =>
   const target = resolveLibraryFile(req.body.path);
   if (!target) return res.status(400).json({ message: 'Lokasi file tidak valid' });
   if (!fs.existsSync(target.full)) return res.status(404).json({ message: 'File tidak ditemukan' });
-  // ponytail: edit lengkap — nama boleh tanpa .pdf, kategori & matkul bisa dipindah
+  // ponytail: edit lengkap â€” nama boleh tanpa .pdf, kategori & matkul bisa dipindah
   let newNameRaw = req.body.newName != null ? String(req.body.newName).trim() : target.name;
   if (!newNameRaw) return res.status(400).json({ message: 'Nama file tidak boleh kosong' });
   let newName = sanitizeLibraryName(newNameRaw);
@@ -481,7 +481,7 @@ app.delete('/api/library/files', authenticate, requireLibraryAdmin, (req, res) =
   res.json({ message: 'File berhasil dihapus' });
 });
 
-// ============ SIMPAN E-BOOK PER USER (tombol ⎙ di Library) ============
+// ============ SIMPAN E-BOOK PER USER (tombol âŽ™ di Library) ============
 // Penyimpanan sederhana: file JSON 'user id -> [path relatif, ...]'.
 // ponytail: file JSON, cukup untuk skala lokal; pindah ke tabel MySQL
 // jika nanti butuh query/konsistensi transaksional.
@@ -499,7 +499,7 @@ function writeSaved(data) {
   fs.writeFileSync(SAVED_FILE, JSON.stringify(data, null, 2));
 }
 
-// ponytail: path simpanan boleh jenis/folder apa pun (skripsi, dst) — cukup cegah traversal
+// ponytail: path simpanan boleh jenis/folder apa pun (skripsi, dst) â€” cukup cegah traversal
 function resolveSavedPath(relPath) {
   let decoded;
   try { decoded = decodeURIComponent(String(relPath || '')); } catch (e) { return null; }

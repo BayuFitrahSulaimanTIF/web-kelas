@@ -6,6 +6,11 @@
 // - Shutdown yang mulus (tutup koneksi DB)
 // ===================================================
 
+// Audit keamanan sandi menjalankan verifikasi argon2 paralel (8-armed).
+// libuv hanya menyediakan 4 thread default, jadi threadpool dinaikkan DULUAN
+// sebelum modul lain dimuat agar benar-benar paralel.
+if (!process.env.UV_THREADPOOL_SIZE) process.env.UV_THREADPOOL_SIZE = '8';
+
 require('dotenv').config();
 
 const http = require('http');
