@@ -304,7 +304,10 @@ exports.resetPassword = asyncHandler(async (req, res) => {
 
   const passwordHash = await PasswordCodec.hashPassword(newPassword);
   await User.updatePassword(user.id, passwordHash);
-  markAccountDirty(req.user.id, req.user.username);
+  // ponytail: reset-password TIDAK lewat authenticate, jadi req.user undefined.
+  // Pakai username target dari hasil lookup. Jika baris ini gagal, password
+  // sudah terlanjur berubah -> user melihat "kesalahan server" padahal sukses.
+  markAccountDirty(user.id, user.username);
   await RefreshToken.deleteByUserId(user.id);
 
   res.json({ message: 'Kata sandi berhasil diperbarui. Silakan masuk dengan kata sandi baru' });
@@ -350,7 +353,7 @@ exports.changePassword = asyncHandler(async (req, res) => {
 
   const passwordHash = await PasswordCodec.hashPassword(String(req.body.newPassword));
   await User.updatePassword(user.id, passwordHash);
-  markAccountDirty(req.user.id, req.user.username);
+  markAccountDirty(user.id, user.username);
   await RefreshToken.deleteByUserId(user.id);
 
   res.json({ message: 'Kata sandi berhasil diubah. Silakan masuk kembali' });
