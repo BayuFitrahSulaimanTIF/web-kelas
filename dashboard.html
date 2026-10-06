@@ -4850,6 +4850,13 @@
             audio.addEventListener('loadedmetadata', () => {
               dur.textContent = '0:00 / ' + fmtVoiceSec(voiceDuration || audio.duration);
             });
+            // Tanpa ini, player gagal memuat format tertentu diam saja:
+            // durasi tetap 0:00 dan tidak ada umpan balik apa pun ke pengguna.
+            // Itu yang terjadi saat server mengirim Content-Type video/webm
+            // untuk rekaman audio .webm.
+            audio.addEventListener('error', () => {
+              if (audio.error) dur.textContent = 'Gagal diputar';
+            });
           }).catch(() => { dur.textContent = 'Gagal dimuat'; });
         } else if (msg.type === 'file') {
           const fileLink = document.createElement('a');

@@ -257,7 +257,14 @@ exports.streamMedia = asyncHandler(async (req, res) => {
   };
   const inline = INLINE_SAFE.has(ext);
 
-  res.setHeader('Content-Type', MIME_BY_EXT[ext] || 'application/octet-stream');
+  // .webm ambigu: bisa video ATAU audio (voice note dari MediaRecorder selalu
+  // audio/webm;codecs=opus). Kalau dilayani sebagai video/webm, <audio>
+  // menolaknya karena X-Content-Type-Options: nosniff -> tidak bisa diputar
+  // dan durasi stuck di 0:00. Jadi pakai tipe pesan untuk memutuskan.
+  let mime = MIME_BY_EXT[ext] || 'application/octet-stream';
+  if (ext === 'webm' && msg.type === 'voice') mime = 'audio/webm';
+
+  res.setHeader('Content-Type', mime);
   res.setHeader('Content-Length', msg.size);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
