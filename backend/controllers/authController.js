@@ -296,17 +296,37 @@ exports.resetPassword = asyncHandler(async (req, res) => {
   }
 
   const identifier = String(req.body.identifier || req.body.username || req.body.email || '').trim();
+  const currentPassword = String(req.body.currentPassword);
   const newPassword = String(req.body.newPassword);
 
   const user = await User.findByUsernameOrEmail(identifier);
   if (!user) {
-    // pesan sama dengan sukses: kalau "tidak ditemukan" dibedakan, endpoint
-    // ini jadi alat enumerasi akun yang terdaftar.
+    // pesan sama: kalau "tidak ditemukan" dibedakan, endpoint ini jadi alat
+    // enumerasi akun yang terdaftar.
     throw new AppError(404, 'Permintaan tidak dapat diproses');
+  }
+
+  if (isLocked(user)) {
+    throw new AppError(423, 'Akun terkunci sementara karena terlalu banyak percobaan gagal. Coba lagi dalam beberapa menit');
+  }
+
+  // WAJIB buktikan password lama. Tanpa ini, siapa pun yang tahu username bisa
+  // me-reset password dan mengambil alih akun.
+  const currentMatch = await PasswordCodec.verifyPassword(user.password_hash, currentPassword);
+  if (!currentMatch) {
+    // pakai penghitung lockout yang sama dengan login, supaya menebak
+    // password lama untuk reset ikut terkunci.
+    await User.recordLoginFailure(user.id);
+    const { loginMaxAttempts } = env.security;
+    if (user.failed_login_attempts + 1 >= loginMaxAttempts) {
+      await User.lockAccount(user.id, env.security.loginLockoutMinutes);
+    }
+    throw new AppError(401, 'Email/username atau kata sandi salah');
   }
 
   const passwordHash = await PasswordCodec.hashPassword(newPassword);
   await User.updatePassword(user.id, passwordHash);
+  await User.recordLoginSuccess(user.id);
   // ponytail: reset-password TIDAK lewat authenticate, jadi req.user undefined.
   // Pakai username target dari hasil lookup. Jika baris ini gagal, password
   // sudah terlanjur berubah -> user melihat "kesalahan server" padahal sukses.

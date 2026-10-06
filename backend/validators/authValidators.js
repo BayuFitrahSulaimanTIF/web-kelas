@@ -117,10 +117,17 @@ function validateRegister(payload) {
 function validateResetPassword(payload) {
   const errors = {};
   const identifier = normalize(payload.identifier || payload.username || payload.email || '');
+  const currentPassword = String(payload.currentPassword || '');
   const newPassword = String(payload.newPassword || '');
 
   if (!identifier) {
     errors.identifier = 'Email/username wajib diisi';
+  }
+
+  if (!currentPassword) {
+    errors.currentPassword = 'Kata sandi lama wajib diisi';
+  } else if (currentPassword.length > 500) {
+    errors.currentPassword = 'Kata sandi terlalu panjang';
   }
 
   if (!newPassword) {

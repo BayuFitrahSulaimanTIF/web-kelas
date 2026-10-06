@@ -37,8 +37,10 @@
       card: document.querySelector('.reset-card'),
       form: document.getElementById('reset-form'),
       accountValue: document.getElementById('reset-account-value'),
+      currentPassword: document.getElementById('reset-current-password'),
       newPassword: document.getElementById('reset-new-password'),
       confirmPassword: document.getElementById('reset-confirm-password'),
+      toggleCurrent: document.getElementById('reset-toggle-current'),
       toggleNew: document.getElementById('reset-toggle-new'),
       toggleConfirm: document.getElementById('reset-toggle-confirm'),
       message: document.getElementById('reset-message'),
@@ -74,8 +76,8 @@
     overlay.hidden = false;
     overlay.classList.add('is-open');
 
-    if (state.elements.newPassword) {
-      state.elements.newPassword.focus();
+    if (state.elements.currentPassword) {
+      state.elements.currentPassword.focus();
     }
   }
 
@@ -99,11 +101,11 @@
   }
 
   function resetForm() {
-    [state.elements.newPassword, state.elements.confirmPassword].forEach((input) => {
+    [state.elements.currentPassword, state.elements.newPassword, state.elements.confirmPassword].forEach((input) => {
       if (input) input.value = '';
     });
 
-    [state.elements.newPassword, state.elements.confirmPassword].forEach((input) => {
+    [state.elements.currentPassword, state.elements.newPassword, state.elements.confirmPassword].forEach((input) => {
       if (input) UI.clearFieldError(input);
     });
 
@@ -119,14 +121,22 @@
 
     if (state.isSubmitting) return;
 
-    const { newPassword, confirmPassword, form } = state.elements;
+    const { currentPassword, newPassword, confirmPassword, form } = state.elements;
 
+    UI.clearFieldError(currentPassword);
     UI.clearFieldError(newPassword);
     UI.clearFieldError(confirmPassword);
     UI.setMessage(state.elements.message, '');
 
+    const currentValue = currentPassword.value;
     const passwordValue = newPassword.value;
     const confirmValue = confirmPassword.value;
+
+    if (!currentValue) {
+      UI.showFieldError(currentPassword, 'Kata sandi lama wajib diisi');
+      Animation.shake(state.elements.card);
+      return;
+    }
 
     if (!passwordValue) {
       UI.showFieldError(newPassword, 'Kata sandi baru wajib diisi');
@@ -160,6 +170,7 @@
         method: 'POST',
         body: JSON.stringify({
           identifier: state.identifier,
+          currentPassword: currentValue,
           newPassword: passwordValue
         })
       });
@@ -199,10 +210,15 @@
   function bindEvents() {
     state.elements.form.addEventListener('submit', submitReset);
 
-    [state.elements.newPassword, state.elements.confirmPassword].forEach((input) => {
+    [state.elements.currentPassword, state.elements.newPassword, state.elements.confirmPassword].forEach((input) => {
       input.addEventListener('input', () => UI.clearFieldError(input));
       input.addEventListener('focus', () => Animation.focusInput(input));
       input.addEventListener('blur', () => Animation.blurInput(input));
+    });
+
+    state.elements.toggleCurrent.addEventListener('click', () => {
+      Animation.pressButton(state.elements.toggleCurrent);
+      toggleVisibility(state.elements.currentPassword, state.elements.toggleCurrent);
     });
 
     state.elements.toggleNew.addEventListener('click', () => {
