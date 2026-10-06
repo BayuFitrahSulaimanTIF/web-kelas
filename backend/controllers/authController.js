@@ -88,9 +88,14 @@ exports.login = asyncHandler(async (req, res) => {
   const identifier = String(req.body.username || req.body.email || '').trim();
   const password = String(req.body.password || '');
 
+  // ponytail: pesan login SERAGAM untuk semua kegagalan (user tidak ada,
+  // nonaktif, terkunci, sandi salah). Kalau bedanya, penyerang bisa
+  // enumerate akun yang terdaftar dari balasan server.
+  const GENERIC_LOGIN_ERROR = 'Email/username atau kata sandi salah';
+
   const user = await User.findByUsernameOrEmail(identifier);
   if (!user) {
-    throw new AppError(401, 'Email/username atau kata sandi salah');
+    throw new AppError(401, GENERIC_LOGIN_ERROR);
   }
 
   if (!isActiveUser(user)) {
@@ -114,16 +119,12 @@ exports.login = asyncHandler(async (req, res) => {
 
     if (attempts >= loginMaxAttempts) {
       await User.lockAccount(user.id, loginLockoutMinutes);
-      throw new AppError(
-        423,
-        `Terlalu banyak percobaan gagal. Akun dikunci selama ${loginLockoutMinutes} menit`
-      );
+      // tetap pesan generik: jangan bocorkan bahwa akun ini terkunci
+      throw new AppError(401, GENERIC_LOGIN_ERROR);
     }
 
-    throw new AppError(
-      401,
-      `Email/username atau kata sandi salah (percobaan ${attempts}/${loginMaxAttempts})`
-    );
+    // jangan tampilkan "percobaan N/5" -> membocorkan hitungan internal
+    throw new AppError(401, GENERIC_LOGIN_ERROR);
   }
 
   await User.recordLoginSuccess(user.id);
@@ -299,7 +300,9 @@ exports.resetPassword = asyncHandler(async (req, res) => {
 
   const user = await User.findByUsernameOrEmail(identifier);
   if (!user) {
-    throw new AppError(404, 'Akun tidak ditemukan. Periksa email/username Anda');
+    // pesan sama dengan sukses: kalau "tidak ditemukan" dibedakan, endpoint
+    // ini jadi alat enumerasi akun yang terdaftar.
+    throw new AppError(404, 'Permintaan tidak dapat diproses');
   }
 
   const passwordHash = await PasswordCodec.hashPassword(newPassword);
@@ -319,7 +322,7 @@ exports.resetPassword = asyncHandler(async (req, res) => {
 // ===================================================
 
 exports.checkIdentifier = asyncHandler(async (req, res) => {
-  const identifier = String(req.body.identifier || req.body.email || req.body.username || '').trim();
+  const identifier = String(req.body.identifier || req.body.username || req.body.email || '').trim();
 
   if (!identifier) {
     throw new AppError(400, 'Email/username wajib diisi');
@@ -327,7 +330,10 @@ exports.checkIdentifier = asyncHandler(async (req, res) => {
 
   const user = await User.findByUsernameOrEmail(identifier);
 
-  res.json({ exists: Boolean(user) });
+  // Selalu 200 dengan pesan sama: kalau "akun tidak ada" dibedakan, endpoint
+  // ini jadi alat enumerasi seluruh daftar akun dari luar. Rate limiter
+  // (checkLimiter) yang menahan volume, bukan bedanya respons.
+  res.json({ message: 'Jika identifier terdaftar, lanjutkan ke langkah berikutnya.' });
 });
 
 // ===================================================

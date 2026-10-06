@@ -115,17 +115,14 @@
     UI.setButtonLoading(state.elements.submit, true);
 
     try {
-      const result = await window.Api.request('/auth/check-identifier', {
+      // Selalu lanjut ke langkah berikutnya, baik identifier terdaftar atau
+      // tidak. Server tidak lagi memberi tahu "akun tidak ada" -> tidak bisa
+      // dipakai menebak daftar akun. Jika memang tidak terdaftar, langkah
+      // reset-password yang akan menolaknya.
+      await window.Api.request('/auth/check-identifier', {
         method: 'POST',
         body: JSON.stringify({ identifier: value })
       });
-
-      if (!result.exists) {
-        const isEmail = value.includes('@');
-        UI.showFieldError(state.elements.input, isEmail ? 'Email tidak terdaftar.' : 'Username tidak terdaftar.');
-        Animation.shake(state.elements.card);
-        return;
-      }
 
       localStorage.setItem(APP_CONFIG.STORAGE_KEYS.resetIdentifier, value);
       closeForgot();
