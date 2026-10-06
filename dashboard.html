@@ -4506,7 +4506,11 @@
       // ============================================================
       // COMMUNITY CHAT (ala WhatsApp)
       // ============================================================
-      const CHAT_API = 'http://localhost:3000/api/community';
+        // ponytail: pakai origin halaman (localhost atau ngrok), bukan URL
+        // hardcode. Kalau halaman dibuka lewat tunnel ngrok (https), fetch ke
+        // http://localhost:3000 bisa ditolak browser sebagai mixed content
+        // dan CORS, sehingga media community gagal dimuat.
+        const CHAT_API = (window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin) + '/api/community';
       const chatBody = document.getElementById('chat-body');
       const chatLoading = document.getElementById('chat-loading');
       const chatInput = document.getElementById('chat-input');
@@ -4528,7 +4532,6 @@
       let chatStarted = false;
       let chatPollTimer = null;
       let chatLoadingOlder = false;
-      const chatBlobCache = new Map();
 
       function dateKey(d) {
         return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
@@ -4611,14 +4614,16 @@
         chatBody.appendChild(div);
       }
 
-      async function chatMediaUrl(msg) {
-        if (chatBlobCache.has(msg.id)) return chatBlobCache.get(msg.id);
-        const r = await fetchAuth(CHAT_API + '/messages/' + msg.id + '/media');
-        if (!r.ok) throw new Error('Gagal memuat media');
-        const blob = await r.blob();
-        const url = URL.createObjectURL(blob);
-        chatBlobCache.set(msg.id, url);
-        return url;
+      function chatMediaUrl(msg) {
+        // ponytail: arahkan <img>/<audio>/<video> langsung ke URL endpoint
+        // (pakai ?token=, sudah didukung middleware tokenFromQuery).
+        // Sebelumnya: fetch -> r.blob() -> objectURL. Rantai itu bisa gagal
+        // di fetch (CORS/mixed content/401) sehingga rekaman suara hanya
+        // tampil "Gagal dimuat". URL langsung tidak punya tahap gagal itu,
+        // dan browser otomatis pakai Range request saat menggeser durasi.
+        return Promise.resolve(
+          CHAT_API + '/messages/' + msg.id + '/media?token=' + encodeURIComponent(getToken() || '')
+        );
       }
 
       function fmtVoiceSec(sec) {

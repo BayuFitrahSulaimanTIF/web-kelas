@@ -7,12 +7,15 @@ const communityMsgLimiter = createRateLimiter({ windowMs: 60*1000, max: 30, name
 
 const router = express.Router();
 
-router.use(authenticate);
+// tokenFromQuery WAJIB lebih dulu dari authenticate: <audio>/<img>/<video>
+// tidak bisa mengirim header Authorization, jadi token-nya lewat ?token=
+// (dipakai frontend saat menyodorkan URL media langsung).
+router.use(authenticate.tokenFromQuery, authenticate);
 
 router.get('/messages', communityController.listMessages);
 router.post('/messages', communityMsgLimiter, communityController.sendText);
 router.post('/messages/upload', communityUploadLimiter, communityController.uploadMedia);
 router.delete('/messages/:id', communityController.deleteMessage);
-router.get('/messages/:id/media', authenticate.tokenFromQuery, authenticate, communityController.streamMedia);
+router.get('/messages/:id/media', communityController.streamMedia);
 
 module.exports = router;
