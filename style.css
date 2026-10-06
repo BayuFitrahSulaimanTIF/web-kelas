@@ -2985,24 +2985,52 @@ font-family: 'VT323', 'Courier New', monospace;
 .mention-dropdown {
   position: absolute;
   bottom: 100%;
-  left: 0; right: 0;
+  left: 0;
+  /* Jangan selebar input: kolom chat sangat lebar, daftar akun jadi
+     terentang. Batasi lebar dan yellowish panel seperti Image 2. */
+  width: max-content;
+  min-width: 260px;
+  max-width: min(320px, 60vw);
   background: #fff;
   border: 1px solid #ddd;
-  border-radius: 6px;
+  border-radius: 10px;
   box-shadow: 0 6px 18px rgba(0,0,0,0.15);
   max-height: 220px;
   overflow-y: auto;
+  overflow-x: hidden;
   z-index: 10;
+  padding: 4px 0;
 }
 .mention-item {
   padding: 0.45rem 0.7rem;
   cursor: pointer;
-  display: flex; justify-content: space-between; gap: 0.5rem;
+  display: flex; align-items: center; gap: 0.55rem;
+  min-width: 0;
 }
 .mention-item:hover { background: #eef8ee; }
 .mention-item.active { background: #eef8ee; }
-.mention-item-name { color: #1a7a1a; font-weight: 700; }
-.mention-item-desc { color: #888; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mention-item-avatar {
+  width: 30px; height: 30px;
+  flex: 0 0 30px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #e9edf2;
+  display: flex; align-items: center; justify-content: center;
+}
+.mention-item-avatar img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.mention-item-text { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.mention-item-name {
+  color: #1a7a1a; font-weight: 700; font-size: 14px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mention-item-desc {
+  color: #888; font-size: 12px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .cmd-send {
   padding: 0.45rem 1.1rem;
   background: #2a7d2a;

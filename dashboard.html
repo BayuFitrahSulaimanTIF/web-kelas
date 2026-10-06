@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Press+Start+2P&family=VT323&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/images/logo/logo-unesa.png">
-  <link rel="stylesheet" href="style.css?v=20261003-pager">
+  <link rel="stylesheet" href="style.css?v=20261006-mention">
 </head>
 <body>
 
@@ -4222,7 +4222,36 @@
           item.className = 'mention-item' + (i === target.active ? ' active' : '');
           item.dataset.index = String(i);
           item.dataset.username = u.username;
-          item.innerHTML = '<span class="mention-item-name">@' + escapeHtml(u.username) + '</span> <span class="mention-item-desc">' + escapeHtml(u.full_name || '') + '</span>';
+
+          // Foto profil kalau ada; kalau tidak (atau file-nya hilang) pakai
+          // inisial, sama seperti avatar di profile & kartu akun.
+          const initials = window.initialsAvatarSrc(u);
+          const av = document.createElement('span');
+          av.className = 'mention-item-avatar';
+          const img = document.createElement('img');
+          img.alt = '';
+          img.loading = 'lazy';
+          img.onerror = function () { img.onerror = null; img.src = initials; };
+          img.src = u.avatar
+            ? (window.__EXT_API || '') + '/uploads/avatars/' + encodeURIComponent(u.avatar)
+            : initials;
+          av.appendChild(img);
+
+          const text = document.createElement('span');
+          text.className = 'mention-item-text';
+          const name = document.createElement('span');
+          name.className = 'mention-item-name';
+          name.textContent = '@' + u.username;
+          text.appendChild(name);
+          if (u.full_name) {
+            const desc = document.createElement('span');
+            desc.className = 'mention-item-desc';
+            desc.textContent = u.full_name;
+            text.appendChild(desc);
+          }
+
+          item.appendChild(av);
+          item.appendChild(text);
           target.dropdown.appendChild(item);
         });
         target.dropdown.style.display = 'block';

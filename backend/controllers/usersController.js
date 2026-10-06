@@ -7,7 +7,7 @@ const { db } = require('../config/database');
 
 exports.listMentions = asyncHandler(async (req, res) => {
   const [rows] = await db.query(
-    `SELECT id, username, full_name, role
+    `SELECT id, username, full_name, role, avatar
      FROM users
      WHERE is_active = 1
      ORDER BY username ASC
