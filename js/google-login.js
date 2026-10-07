@@ -57,13 +57,22 @@
     // Server yang menentukan apakah fitur ini hidup. Kalau
     // GOOGLE_CLIENT_ID belum diisi, tombolnya tidak muncul sama sekali.
     let config;
-    try {
-      config = await window.Api.request('/auth/google/config');
-    } catch (error) {
-      return;
-    }
+try {
+                config = await window.Api.request('/auth/google/config');
+              } catch (error) {
+                // Server tidak terjangkau. Tampilkan wadahnya dengan pesan,
+                // jangan hilangkan tanpa jejak.
+                state.elements.wrap.hidden = false;
+                UI.setMessage(state.elements.message, 'Server belum terhubung. Login email tetap bisa dipakai.');
+                return;
+              }
 
     if (!config || !config.enabled || !config.clientId) return;
+
+    // Tampilkan wadah DULU. renderButton() mengukur lebar induknya, dan
+    // induk yang masih `hidden` (display:none) berukuran 0 -> Google
+    // melempar error dan tidak menggambar apa pun.
+    state.elements.wrap.hidden = false;
 
     try {
       const google = await loadGoogleScript();
@@ -73,20 +82,28 @@
         callback: handleCredential
       });
 
+      const available = state.elements.mount.clientWidth || 360;
+      // Google hanya menerima lebar 120-400 px.
+      const width = Math.max(120, Math.min(400, Math.floor(available)));
+
       google.accounts.id.renderButton(state.elements.mount, {
         theme: 'outline',
         size: 'large',
-        width: Math.min(360, state.elements.wrap.clientWidth || 360),
+        width,
         text: 'continue_with',
         locale: 'id'
       });
 
-      state.elements.wrap.hidden = false;
       state.isReady = true;
     } catch (error) {
-      // Tombol tidak muncul = fitur、Google, atau jaringan sedang bermasalah.
-      // Jangan ganggu alur login email yang sudah berjalan normal.
-      state.elements.wrap.hidden = true;
+      // Kegagalan di sini tidak boleh diam-diam hilang: itu sebabnya
+      // orang mengira tombolnya tidak pernah ada. Login email tetap jalan.
+      state.elements.wrap.hidden = false;
+      state.elements.mount.textContent = '';
+      UI.setMessage(
+        state.elements.message,
+        'Login dengan Google gagal dimuat. Periksa koneksi atau muat ulang halaman.'
+      );
     }
   }
 
