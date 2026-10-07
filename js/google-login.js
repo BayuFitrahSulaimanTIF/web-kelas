@@ -20,6 +20,8 @@
   const CONNECT_POLL_MS = 400;
   const CONFIG_RETRY_MS = 1500;
   const CONFIG_MAX_RETRY = 4;
+  const LOGIN_RETRY_MS = 1200;
+  const LOGIN_MAX_RETRY = 4;
 
   function selectDom() {
     state.elements = {
@@ -169,6 +171,37 @@
     }
   }
 
+  // Kirim kredensial ke backend.
+  //
+  // Popup Google menutup diri saat akun dipilih, dan itu membuat tab ini
+  // kembali mendapat focus. connectivity.js langsung menjalankan checkNow()
+  // dan sementara itu state = 'checking', sedangkan window.Api.request
+  // melempar 'Offline' selama state bukan 'online'. Lewati ngrok, health
+  // check butuh 1-3 detik, jadi request kita pasti ditolak di jendela itu.
+  //
+  // ID token Google masih sah sekitar satu jam dan bisa diverifikasi
+  // berulang kali, jadi menunggu lalu mencoba ulang aman.
+  async function exchangeCredential(idToken) {
+    const body = JSON.stringify({ token: idToken });
+
+    for (let attempt = 0; attempt <= LOGIN_MAX_RETRY; attempt++) {
+      await waitForServer();
+
+      try {
+        return await window.Api.request('/auth/google', {
+          method: 'POST',
+          body
+        });
+      } catch (error) {
+        const offline = /offline/i.test(String(error && error.message));
+        if (!offline || attempt === LOGIN_MAX_RETRY) throw error;
+        await wait(LOGIN_RETRY_MS * (attempt + 1));
+      }
+    }
+
+    return null;
+  }
+
   async function handleCredential(response) {
     if (state.isSubmitting) return;
 
@@ -176,13 +209,10 @@
     if (!idToken) return;
 
     state.isSubmitting = true;
-    showMessage('');
+    showMessage('Memverifikasi akun Google...', 'success');
 
     try {
-      const data = await window.Api.request('/auth/google', {
-        method: 'POST',
-        body: JSON.stringify({ token: idToken })
-      });
+      const data = await exchangeCredential(idToken);
 
       saveAuthSession(data);
 
