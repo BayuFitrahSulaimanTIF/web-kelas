@@ -19,7 +19,7 @@
   const SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
   const CONNECT_TIMEOUT_MS = 20000;
   const CONNECT_POLL_MS = 400;
-  const CONFIG_RETRY_MS = 1500;
+  const CONFIG_RETRY_MS = 800;
   const CONFIG_MAX_RETRY = 4;
   const LOGIN_RETRY_MS = 1200;
   const LOGIN_MAX_RETRY = 4;
@@ -100,17 +100,29 @@
     });
   }
 
-  // Server menentukan apakah fitur ini hidup. Ngrok sering lambat
-  // setelah menganggur, jadi coba beberapa kali sebelum menyerah.
+  // Config hanya menentukan client ID dan apakah fiturnya hidup. Pakai
+  // fetch biasa, bukan window.Api.request: yang itu melempar 'Offline'
+  // selama connectivity.js masih memeriksa koneksi, padahal config tetap
+  // bisa diambil begitu saja.
   async function fetchConfig() {
+    const base = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL)
+      || (window.location.origin + '/api');
+
     for (let attempt = 0; attempt <= CONFIG_MAX_RETRY; attempt++) {
       try {
-        return await window.Api.request('/auth/google/config');
+        const response = await fetch(base + '/auth/google/config', {
+          headers: { 'ngrok-skip-browser-warning': '1' },
+          cache: 'no-store'
+        });
+
+        if (!response.ok) throw new Error('config ' + response.status);
+        return await response.json();
       } catch (error) {
         if (attempt === CONFIG_MAX_RETRY) throw error;
-        await wait(CONFIG_RETRY_MS * (attempt + 1));
+        await wait(CONFIG_RETRY_MS);
       }
     }
+
     return null;
   }
 
@@ -120,13 +132,10 @@
 
     if (!state.elements.wrap) return;
 
-    const online = await waitForServer();
-    state.elements.wrap.hidden = false;
-
-    if (!online) {
-      showMessage('Server belum terhubung. Login email tetap bisa dipakai.');
-      return;
-    }
+    // Unduh pustaka Google sekarang, paralel dengan ambil config.
+    // Sebelumnya script baru diminta SETELAH config selesai, jadi unduhan
+    // 275 KB itu berjalan sesudah satu putaran penuh ke server kita.
+    const scriptPromise = loadGoogleScript();
 
     let config;
     try {
@@ -142,8 +151,11 @@
       return;
     }
 
+    // Wadah boleh langsung terlihat; isinya yang menyusul.
+    state.elements.wrap.hidden = false;
+
     try {
-      const google = await loadGoogleScript();
+      const google = await scriptPromise;
 
       google.accounts.id.initialize({
         client_id: config.clientId,
