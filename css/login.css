@@ -1,4 +1,4 @@
-﻿/* ================================================= */
+/* ================================================= */
 /* HEADER */
 /* ================================================= */
 
@@ -229,51 +229,80 @@
   opacity: 0.62;
 }
 
-/* Login Google: hanya ikon, bentuk bujur sangkar.
+/* Login pihak ketiga: GitHub dan Google, dua bujur sangkar ikon-saja
+   berdampingan.
 
-   Google Identity Services tidak punya opsi ikon-saja, jadi tombolnya tetap
-   dirender Google, lalu diperkecil jadi bujur sangkar 46px dan dibuat
-   transparan. Ia diletakkan DI ATAS ikon yang terlihat, jadi kliktetikus
-   langsung mendarat di tombol Google (klik asli, bukan klik buatan) dan
-   jendelanya tetap terbuka seperti biasa. Ikon yang terlihat cuma dekorasi. */
-.google-login {
+   Google Identity Services tidak punya opsi ikon-saja, jadi tombolnya
+   tetap dirender Google, lalu diperkecil jadi bujur sangkar transparan
+   dan diletakkan DI ATAS ikon yang terlihat. Jadi klik tetikus tetap
+   mendarat di tombol asli Google, dan jendela login-nya tetap terbuka
+   seperti biasa.
+
+   GitHub memakai OAuth redirect, jadi cukup tautan biasa. */
+.oauth-row {
   position: relative;
   margin-top: clamp(5px, 0.9vh, 10px);
   display: flex;
   justify-content: center;
   align-items: center;
+  gap: 12px;
 }
 
-.google-mark {
+.oauth-mark {
   width: 46px;
   height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #fff;
+  color: #24292f;
   border: 1px solid var(--color-border, #d8dde6);
   border-radius: 10px;
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+  text-decoration: none;
 }
 
-/* Tombol aslinya tidak terlihat, jadi_ring fokusnya dipindah ke ikon yang
-   terlihat agar pengguna keyboard tetap tahu sedang berada di tombol ini. */
-.google-login:has(#google-signin-button [role="button"]:focus-visible) .google-mark {
+.oauth-slot {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  display: flex;
+}
+
+.oauth-slot[hidden] {
+  display: none;
+}
+
+.oauth-mark[hidden] {
+  display: none;
+}
+
+a.oauth-mark:hover {
+  background: #f6f8fa;
+  box-shadow: 0 2px 6px rgba(16, 24, 40, 0.12);
+}
+
+a.oauth-mark:focus-visible {
   outline: 3px solid var(--color-primary, #2563eb);
   outline-offset: 2px;
 }
 
-.google-login #google-signin-button {
+/* Tombol asli Google tidak terlihat, jadi cincin fokusnya dipindah ke ikon
+   yang terlihat agar pengguna keyboard tetap tahu sedang berada di sini. */
+.oauth-row:has(#google-signin-button [role="button"]:focus-visible) .oauth-mark {
+  outline: 3px solid var(--color-primary, #2563eb);
+  outline-offset: 2px;
+}
+
+#google-signin-button {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
   width: 46px;
   height: 46px;
   z-index: 1;
 }
 
-.google-login #google-signin-button [role="button"] {
+#google-signin-button [role="button"] {
   width: 46px !important;
   height: 46px !important;
   min-width: 0 !important;

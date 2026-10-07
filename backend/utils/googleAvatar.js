@@ -17,7 +17,7 @@ const ALLOWED_HOSTS = /(^|\.)googleusercontent\.com$|(^|\.)ggpht\.com$/;
 const TIMEOUT_MS = 5000;
 
 // Ikuti redirect beberapa kali; lh3 sering mengarahkan ke CDN lain.
-function download(url, redirectsLeft = 3) {
+function download(url, allowedHosts, redirectsLeft = 3) {
   return new Promise((resolve, reject) => {
     let target;
     try {
@@ -27,7 +27,7 @@ function download(url, redirectsLeft = 3) {
       return;
     }
 
-    if (target.protocol !== 'https:' || !ALLOWED_HOSTS.test(target.hostname)) {
+    if (target.protocol !== 'https:' || !allowedHosts.test(target.hostname)) {
       reject(new Error('Host foto tidak diizinkan'));
       return;
     }
@@ -41,7 +41,7 @@ function download(url, redirectsLeft = 3) {
           reject(new Error('Terlalu banyak redirect'));
           return;
         }
-        download(new URL(res.headers.location, target).toString(), redirectsLeft - 1)
+        download(new URL(res.headers.location, target).toString(), allowedHosts, redirectsLeft - 1)
           .then(resolve, reject);
         return;
       }
@@ -87,12 +87,22 @@ function download(url, redirectsLeft = 3) {
 // Foto profil adalah hiasan. Kalau gagal diunduh, login tetap
 // berjalan tanpa foto — bukan menggagalkan seluruh login.
 async function saveGooglePicture(userId, pictureUrl) {
+  return saveRemotePicture(userId, pictureUrl, 'google', ALLOWED_HOSTS);
+}
+
+// Bentuk yang sama dipakai login GitHub, hanya host yang diizinkan berbeda.
+async function saveGitHubPicture(userId, avatarUrl) {
+  const hosts = /(^|\.)githubusercontent\.com$|(^|\.)github\.com$|(^|\.)githubassets\.com$/;
+  return saveRemotePicture(userId, avatarUrl, 'github', hosts);
+}
+
+async function saveRemotePicture(userId, url, prefix, allowedHosts) {
   const previous = fs.readdirSync(AVATAR_DIR)
-    .filter((name) => name.startsWith(userId + '-google-'));
+    .filter((name) => name.startsWith(userId + '-' + prefix + '-'));
 
   try {
-    const data = await download(pictureUrl);
-    const filename = userId + '-google-' + Date.now() + '.jpg';
+    const data = await download(url, allowedHosts);
+    const filename = userId + '-' + prefix + '-' + Date.now() + '.jpg';
     fs.writeFileSync(path.join(AVATAR_DIR, filename), data);
 
     previous.forEach((old) => {
@@ -109,4 +119,4 @@ async function saveGooglePicture(userId, pictureUrl) {
   }
 }
 
-module.exports = { saveGooglePicture };
+module.exports = { saveGooglePicture, saveGitHubPicture };

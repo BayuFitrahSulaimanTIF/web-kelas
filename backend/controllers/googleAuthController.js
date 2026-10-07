@@ -11,11 +11,10 @@
 
 const asyncHandler = require('../middlewares/asyncHandler');
 const User = require('../models/User');
-const Student = require('../models/Student');
-const PasswordCodec = require('../utils/passwordCodec');
 const { AppError } = require('../utils/errors');
 const { generateAccountToken } = require('../utils/accountToken');
 const { isEnabled, verifyIdToken } = require('../utils/googleAuth');
+const { applyNimFromEmail } = require('../utils/nimFromEmail');
 const env = require('../config/env').env;
 const authController = require('./authController');
 const { saveGooglePicture } = require('../utils/googleAvatar');
@@ -30,44 +29,6 @@ function usernameFromName(name, email) {
     .slice(0, 50);
 
   return cleaned || String(email || '').split('@')[0].slice(0, 50);
-}
-
-// Email kampus UNESA memakai NIM sebagai bagian sebelum '@':
-// 25051204214@mhs.unesa.ac.id -> NIM 25051204214
-const NIM_FROM_EMAIL = /^(\d{8,15})@/;
-
-// Dua digit awal NIM UNESA adalah tahun angkatan: 25... -> 2025.
-function angkatanFromNim(nim) {
-  const match = /^(\d{2})\d{8,13}$/.exec(nim);
-  return match ? Number('20' + match[1]) : null;
-}
-
-async function applyNimFromEmail(user, email, fullName) {
-  const match = NIM_FROM_EMAIL.exec(email);
-  if (!match) return null;
-
-  const nim = match[1];
-
-  if (!user.nim) {
-    await User.updateNim(user.id, nim);
-    user.nim = nim;
-  }
-
-  // Catat juga di tabel students supaya daftar akademik ikut terisi. Kata
-  // sandi portalnya diacak: orang ini masuk lewat Google, bukan SSO, jadi
-  // tidak ada yang bisa memakai sandi placeholder itu.
-  const placeholder = await PasswordCodec.hashPassword(generateAccountToken());
-
-  await Student.upsertFromNim({
-    nim,
-    fullName: fullName || user.username,
-    email,
-    angkatan: angkatanFromNim(nim),
-    programStudi: 'Teknik Informatika',
-    ssoPasswordHash: placeholder
-  });
-
-  return nim;
 }
 
 // Kalau nama sudah dipakai akun lain, tambahkan angka agar unik.

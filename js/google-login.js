@@ -26,8 +26,10 @@
 
   function selectDom() {
     state.elements = {
-      wrap: document.getElementById('google-login'),
-      mount: document.getElementById('google-signin-button')
+      wrap: document.getElementById('oauth-row'),
+      slot: document.getElementById('google-slot'),
+      mount: document.getElementById('google-signin-button'),
+      mark: document.getElementById('google-mark')
     };
   }
 
@@ -146,14 +148,16 @@
       return;
     }
 
-    // GOOGLE_CLIENT_ID belum diisi: tombol memang sengaja disembunyikan.
+    // GOOGLE_CLIENT_ID belum diisi: slot Google disembunyikan. Barisnya
+    // tidak disembunyikan di sini karena GitHub juga memakainya.
     if (!config || !config.enabled || !config.clientId) {
-      state.elements.wrap.hidden = true;
+      if (state.elements.slot) state.elements.slot.hidden = true;
       return;
     }
 
     // Wadah boleh langsung terlihat; isinya yang menyusul.
     state.elements.wrap.hidden = false;
+    if (state.elements.slot) state.elements.slot.hidden = false;
 
     try {
       const google = await scriptPromise;
@@ -330,11 +334,11 @@
     }
   }
 
-  // Skrip ini berada di akhir <body>, jadi wadah #google-login sudah ada
-  // pada saat baris ini dieksekusi. Menunggu DOMContentLoaded akan menunda
-  // semua ini sampai seluruh CSS, gambar, dan font halaman selesai dimuat
+  // Skrip ini berada di akhir <body>, jadi wadah #oauth-row sudah ada pada
+  // saat baris ini dieksekusi. Menunggu DOMContentLoaded akan menunda semua
+  // ini sampai seluruh CSS, gambar, dan font halaman selesai dimuat
   // (terukur 4,2 detik pada muat pertama lewat ngrok). Mulai sekarang saja.
-  if (document.getElementById('google-login')) {
+  if (document.getElementById('oauth-row')) {
     initialize();
   } else {
     document.addEventListener('DOMContentLoaded', initialize);

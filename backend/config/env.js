@@ -39,6 +39,16 @@ const env = {
     // Google diterima (hanya untuk pengembangan).
     allowedDomain: process.env.GOOGLE_ALLOWED_DOMAIN || ''
   },
+  github: {
+    clientId: process.env.GITHUB_CLIENT_ID || '',
+    // GitHub menukar authorization code dengan access token lewat
+    // POST /login/oauth/access_token, dan permintaan itu WAJIB
+    // menyertakan client secret. Berbeda dengan Google yang pakai
+    // ID token dan tidak butuh rahasia sama sekali.
+    clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
+    // Dikosongkan = diturunkan dari FRONTEND_BASE_URL.
+    callbackUrl: process.env.GITHUB_CALLBACK_URL || ''
+  },
   security: {
     loginMaxAttempts: Number(process.env.LOGIN_MAX_ATTEMPTS || 5),
     loginLockoutMinutes: Number(process.env.LOGIN_LOCKOUT_MINUTES || 5),
@@ -82,6 +92,10 @@ function validateEnv() {
 
   if (!env.google.clientId) {
     logger.warn('GOOGLE_CLIENT_ID belum diisi — tombol "Masuk dengan Google" disembunyikan.');
+  }
+
+  if (!env.github.clientId || !env.github.clientSecret) {
+    logger.warn('GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET belum diisi — tombol "Masuk dengan GitHub" disembunyikan.');
   }
 
   if (env.argon2.memoryKib < 19456) {

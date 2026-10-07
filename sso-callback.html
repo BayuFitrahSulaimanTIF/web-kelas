@@ -74,6 +74,12 @@
 
       sessionStorage.setItem(APP_CONFIG.STORAGE_KEYS.token, token);
 
+      // Login GitHub mengirim refresh token juga; login SSO tidak.
+      var refreshToken = params.get('refreshToken');
+      if (refreshToken) {
+        sessionStorage.setItem(APP_CONFIG.STORAGE_KEYS.refreshToken, refreshToken);
+      }
+
       var apiBase = APP_CONFIG.API_BASE_URL;
 
       fetch(apiBase + '/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
