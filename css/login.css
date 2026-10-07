@@ -265,14 +265,5 @@
   flex: 0 0 auto !important;
 }
 
-.google-login .login-message {
-  text-align: center;
-}
-
-/* Pesan hanya muncul saat ada isinya. Tanpa ini paragraf kosong tetap
-   memakan tinggi (~28px) padahal tidak kelihatan. */
-.google-login .login-message:empty {
-  display: none;
-  margin: 0;
-  padding: 0;
-}
+/* Umpan balik login (sukses, gagal, offline) ditampilkan lewat toast di
+   pojok kanan bawah, bukan teks di dalam formulir. */

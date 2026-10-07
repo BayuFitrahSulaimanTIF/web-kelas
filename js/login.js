@@ -113,7 +113,6 @@
       password: document.getElementById('password'),
       submit: document.getElementById('login-submit'),
       passwordToggle: document.getElementById('password-toggle'),
-      message: document.getElementById('login-message'),
       forgotLink: document.querySelector('.forgot-link'),
       ssoButton: document.getElementById('sso-login'),
       modalClose: document.getElementById('modal-close')
@@ -133,7 +132,6 @@
     const errors = validateLoginForm(formData);
 
     UI.clearAllFieldErrors(state.elements.form);
-    UI.setMessage(state.elements.message, '');
 
     if (Object.keys(errors).length > 0) {
       renderValidationErrors(errors);
@@ -152,7 +150,6 @@
       const data = await requestLogin(formData);
       saveAuthSession(data);
 
-      UI.setMessage(state.elements.message, 'Login berhasil, mengalihkan...', 'success');
       UI.showToast('Login berhasil', 'success');
 
       window.setTimeout(() => {
@@ -167,7 +164,6 @@
         ? error.message
         : error.message || 'Terjadi kesalahan saat login';
 
-      UI.setMessage(state.elements.message, message);
       UI.showToast(message, 'error');
       Animation.shake(state.elements.card);
     } finally {
@@ -260,7 +256,6 @@
 
   function handleInputChange(event) {
     UI.clearFieldError(event.currentTarget);
-    UI.setMessage(state.elements.message, '');
   }
 
   // ===================================================

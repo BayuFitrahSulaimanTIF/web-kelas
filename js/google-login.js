@@ -27,13 +27,14 @@
   function selectDom() {
     state.elements = {
       wrap: document.getElementById('google-login'),
-      mount: document.getElementById('google-signin-button'),
-      message: document.getElementById('google-message')
+      mount: document.getElementById('google-signin-button')
     };
   }
 
+  // Semua umpan balik login Google lewat toast di pojok kanan bawah,
+  // sama seperti login email. Tidak ada lagi teks di dalam formulir.
   function showMessage(text, type) {
-    if (state.elements.message) UI.setMessage(state.elements.message, text, type);
+    if (text) UI.showToast(text, type || 'info');
   }
 
   function wait(ms) {
