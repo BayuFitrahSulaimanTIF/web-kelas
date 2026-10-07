@@ -316,6 +316,7 @@ exports.callback = asyncHandler(async (req, res) => {
   const params = new URLSearchParams({
     token: sessionToken,
     refreshToken,
+    provider: 'github',
     welcome: isNewAccount ? '1' : ''
   });
 

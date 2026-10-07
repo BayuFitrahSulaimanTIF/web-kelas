@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Memproses Login SSO - Sistem Mata Kuliah Perguruan Tinggi</title>
+  <title id="page-title">Memproses Login SSO - Sistem Mata Kuliah Perguruan Tinggi</title>
   <link rel="stylesheet" href="css/reset.css">
   <link rel="stylesheet" href="css/variables.css">
   <style>
@@ -53,7 +53,7 @@
 <body>
   <div class="sso-processing" role="status" aria-live="polite">
     <span class="sso-spinner" aria-hidden="true"></span>
-    <p>Login SSO berhasil, mengalihkan...</p>
+    <p id="status-text">Login SSO berhasil, mengalihkan...</p>
   </div>
 
   <script src="js/config.js"></script>
@@ -65,6 +65,13 @@
       if (!token) {
         window.location.replace('index.html');
         return;
+      }
+
+      // Halaman ini dipakai SSO maupun GitHub, jadi teksnya ikut menyesuaikan
+      // dengan cara pengguna masuk.
+      if (params.get('provider') === 'github') {
+        document.getElementById('status-text').textContent = 'Login GitHub berhasil, mengalihkan...';
+        document.getElementById('page-title').textContent = 'Memproses Login GitHub - Sistem Mata Kuliah Perguruan Tinggi';
       }
 
       // Bersihkan token dari URL (riwayat browser, log server, referrer)
