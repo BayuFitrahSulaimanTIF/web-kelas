@@ -30,9 +30,12 @@ CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL UNIQUE,
   email VARCHAR(255) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
+  -- NULL untuk akun yang hanya masuk lewat Google (tidak punya sandi lokal)
+  password_hash VARCHAR(255) DEFAULT NULL,
   account_token CHAR(15) NOT NULL UNIQUE,
   full_name VARCHAR(100) DEFAULT NULL,
+  -- sub dari token Google, dipakai untuk mengenali akun yang sama
+  google_id VARCHAR(255) DEFAULT NULL,
   role ENUM('admin', 'dosen', 'mahasiswa', 'student') NOT NULL DEFAULT 'student',
   managed_course VARCHAR(60) DEFAULT NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -46,8 +49,44 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_users_role (role),
-  INDEX idx_users_is_active (is_active)
+  INDEX idx_users_is_active (is_active),
+  -- satu akun Google = satu baris. NULL diulang allowed, itu bawaan MySQL.
+  UNIQUE INDEX idx_users_google_id (google_id)
 );
+
+-- ===================================================
+-- MIGRASI SKEMA LAMA
+-- Kolom di atas hanya dibuat saat tabel pertama kali dibuat
+-- (CREATE TABLE IF NOT EXISTS). Kalau tabel sudah ada dari versi
+-- sebelumnya, bagian ini yang menambahkan kolom yang kurang.
+-- ===================================================
+
+SET @col := (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'google_id'
+);
+SET @sql := IF(@col = 0, 'ALTER TABLE users ADD COLUMN google_id VARCHAR(255) DEFAULT NULL AFTER full_name', 'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @col := (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'password_hash' AND IS_NULLABLE = 'NO'
+);
+SET @sql := IF(@col = 1, 'ALTER TABLE users MODIFY password_hash VARCHAR(255) DEFAULT NULL', 'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @col := (
+  SELECT COUNT(*) FROM information_schema.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND INDEX_NAME = 'idx_users_google_id'
+);
+SET @sql := IF(@col = 0, 'ALTER TABLE users ADD UNIQUE INDEX idx_users_google_id (google_id)', 'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- =================================================
 -- REFRESH TOKENS (hanya hash SHA-256 yang disimpan)

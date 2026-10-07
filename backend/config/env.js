@@ -31,6 +31,14 @@ const env = {
   },
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   frontendBaseUrl: process.env.FRONTEND_BASE_URL || 'http://localhost:3000',
+  google: {
+    // Client ID dari Google Cloud Console. Dipakai frontend untuk
+    // menampilkan tombol, dan backend untuk memverifikasi token.
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+    // Batasi login hanya ke domain kampus satu. Kosong = semua domain
+    // Google diterima (hanya untuk pengembangan).
+    allowedDomain: process.env.GOOGLE_ALLOWED_DOMAIN || ''
+  },
   security: {
     loginMaxAttempts: Number(process.env.LOGIN_MAX_ATTEMPTS || 5),
     loginLockoutMinutes: Number(process.env.LOGIN_LOCKOUT_MINUTES || 5),
@@ -70,6 +78,10 @@ function validateEnv() {
 
   if (!env.security.librarySecretKey) {
     logger.warn('LIBRARY_SECRET_KEY belum diisi — ebook rahasia Library dimatikan.');
+  }
+
+  if (!env.google.clientId) {
+    logger.warn('GOOGLE_CLIENT_ID belum diisi — tombol "Masuk dengan Google" disembunyikan.');
   }
 
   if (env.argon2.memoryKib < 19456) {

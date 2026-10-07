@@ -13,7 +13,7 @@
 
 const { db } = require('../config/database');
 
-const USER_COLUMNS = 'id, username, email, full_name, role, managed_course, is_active, failed_login_attempts, locked_until, last_login_at, birth_date, gender, bio, avatar, created_at, updated_at';
+const USER_COLUMNS = 'id, username, email, full_name, google_id, role, managed_course, is_active, failed_login_attempts, locked_until, last_login_at, birth_date, gender, bio, avatar, created_at, updated_at';
 // Kolom keamanan hanya diambil di jalur yang membutuhkannya
 const AUTH_COLUMNS = `${USER_COLUMNS}, password_hash`;
 
@@ -50,12 +50,46 @@ const User = {
     return rows[0] || null;
   },
 
-  async create({ username, email, passwordHash, accountToken, full_name, role, managed_course, birth_date, gender }) {
+  async create({ username, email, passwordHash, accountToken, full_name, role, managed_course, birth_date, gender, google_id }) {
     const [result] = await db.execute(
-      'INSERT INTO users (username, email, password_hash, account_token, role, managed_course, full_name, birth_date, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [username, email, passwordHash, accountToken, role || 'student', managed_course || null, full_name || null, birth_date || null, gender || null]
+      'INSERT INTO users (username, email, password_hash, account_token, role, managed_course, full_name, birth_date, gender, google_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [username, email, passwordHash || null, accountToken, role || 'student', managed_course || null, full_name || null, birth_date || null, gender || null, google_id || null]
     );
     return result.insertId;
+  },
+
+  // Akun yang masuk lewat Google dicari lewat sub-nya supaya tetap dikenali
+  // walaupun dia mengganti email di akun Google.
+  async findByGoogleId(googleId) {
+    const [rows] = await db.execute(
+      `SELECT ${USER_COLUMNS} FROM users WHERE google_id = ? LIMIT 1`,
+      [googleId]
+    );
+    return rows[0] || null;
+  },
+
+  async linkGoogleId(id, googleId) {
+    await db.execute(
+      'UPDATE users SET google_id = ? WHERE id = ?',
+      [googleId, id]
+    );
+  },
+
+  // Foto profil dari Google disimpan lewat kolom avatar yang sudah ada,
+  // supaya semua tampilan (aside, kartu akun, mention) ikut memakainya.
+  async updateAvatar(id, avatar) {
+    await db.execute(
+      'UPDATE users SET avatar = ? WHERE id = ?',
+      [avatar, id]
+    );
+  },
+
+  async isUsernameTaken(username) {
+    const [rows] = await db.execute(
+      'SELECT 1 FROM users WHERE username = ? LIMIT 1',
+      [username]
+    );
+    return rows.length > 0;
   },
 
   // Hashing dilakukan di utils/passwordCodec.js (Argon2id);
@@ -108,13 +142,6 @@ const User = {
     await db.execute(
       'UPDATE users SET bio = ? WHERE id = ?',
       [bio, id]
-    );
-  },
-
-  async updateAvatar(id, avatar) {
-    await db.execute(
-      'UPDATE users SET avatar = ? WHERE id = ?',
-      [avatar, id]
     );
   },
 

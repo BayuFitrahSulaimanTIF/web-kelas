@@ -15,6 +15,7 @@ const { pingDatabase, db } = require('./config/database');
 const authenticate = require('./middlewares/authenticate');
 const authRoutes = require('./routes/auth');
 const ssoRoutes = require('./routes/sso');
+const googleAuthRoutes = require('./routes/googleAuth');
 const fileRoutes = require('./routes/files');
 const userRoutes = require('./routes/users');
 const notificationRoutes = require('./routes/notifications');
@@ -905,6 +906,7 @@ app.get('/api/health', async (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/auth/sso', ssoRoutes);
+app.use('/api/auth/google', googleAuthRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);

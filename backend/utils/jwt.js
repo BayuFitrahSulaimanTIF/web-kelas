@@ -27,7 +27,10 @@ function createAccessToken(user) {
 
 function createRefreshToken(user) {
   return signPayload(
-    { id: user.id, type: 'refresh' },
+    // jti wajib acak. Tanpa itu, dua login dalam detik yang sama untuk user
+    // yang sama menghasilkan token yang persis sama, dan hash-nya bentrok
+    // di tabel refresh_tokens (UNIQUE token_hash) -> error 500.
+    { id: user.id, type: 'refresh', jti: crypto.randomBytes(16).toString('hex') },
     env.jwt.refreshSecret,
     env.jwt.refreshExpiresIn
   );
