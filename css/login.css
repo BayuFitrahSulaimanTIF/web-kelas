@@ -245,6 +245,26 @@
   justify-content: center;
 }
 
+/* Jarak ikon <-> teks pada tombol Google.
+   Tombol ini digambar Google sendiri, dan gaya bawaannya memakai
+   justify-content: space-between: ikon didorong ke tepi kiri, sementara
+   span teks melebar penuh dan teksnya dipusatkan di dalamnya. Hasilnya
+   ada rongga besar di antara ikon dan tulisan.
+
+   Karena elemennya ada di dokumen halaman (bukan iframe), susunannya bisa
+   diatur dari sini memakai selektor struktural. Class bawaan Google di-hash
+   dan bisa berubah, jadi sengaja tidak dipakai. */
+.google-login #google-signin-button [role="button"] > div:last-child {
+  justify-content: center !important;
+  gap: 10px !important;
+}
+
+.google-login #google-signin-button [role="button"] span {
+  /* Biarkan span mengikut lebar teksnya, bukan melebar sampai tepi. */
+  width: auto !important;
+  flex: 0 0 auto !important;
+}
+
 .google-login .login-message {
   text-align: center;
 }
