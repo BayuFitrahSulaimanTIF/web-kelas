@@ -12,6 +12,7 @@ const helmet = require('helmet');
 const multer = require('multer');
 const { env } = require('./config/env');
 const { pingDatabase, db } = require('./config/database');
+const { isAllowedOrigin } = require('./utils/publicOrigin');
 const authenticate = require('./middlewares/authenticate');
 const authRoutes = require('./routes/auth');
 const ssoRoutes = require('./routes/sso');
@@ -72,18 +73,7 @@ app.use(helmet({
   crossOriginOpenerPolicy: false,
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
-const _corsAllow = String(env.corsOrigin || 'http://localhost:3000').split(',').map(s=>s.trim()).filter(Boolean);
-const _corsIsAllowed = (origin)=>{
-  if(!origin || origin === 'null') return true;
-  return _corsAllow.some(p=>{
-    if(p==='*') return true;
-    if(p.includes('*')){
-      const re = new RegExp('^' + p.replace(/[.+?^${}()|[\]\\]/g,'\\$&').replace(/\*/g,'.*') + '$');
-      return re.test(origin);
-    }
-    return p===origin;
-  });
-};
+const _corsIsAllowed = isAllowedOrigin;
 app.use(cors({
   origin: (origin, cb)=>{
     if(_corsIsAllowed(origin)) return cb(null, true);

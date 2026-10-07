@@ -19,6 +19,7 @@ const User = require('../models/User');
 const { AppError } = require('../utils/errors');
 const { generateAccountToken } = require('../utils/accountToken');
 const { applyNimFromEmail } = require('../utils/nimFromEmail');
+const { publicOrigin } = require('../utils/publicOrigin');
 const { saveGitHubPicture } = require('../utils/googleAvatar');
 const { env } = require('../config/env');
 const authController = require('./authController');
@@ -36,9 +37,20 @@ function github() {
   return { clientId, clientSecret };
 }
 
+// ponytail: hanya cookie milik flow ini sendiri yang dibaca, jadi tidak
+// perlu menambah dependensi cookie-parser untuk satu nilai.
+function readStateCookie(req) {
+  const hit = String(req.headers.cookie || '')
+    .split(';')
+    .map((s) => s.trim())
+    .find((s) => s.startsWith(`${STATE_COOKIE}=`));
+
+  return hit ? decodeURIComponent(hit.slice(STATE_COOKIE.length + 1)) : '';
+}
+
 function callbackUrl(req) {
   return env.github.callbackUrl
-    || (env.frontendBaseUrl.replace(/\/+$/, '') + '/api/auth/github/callback');
+    || (publicOrigin(req) + '/api/auth/github/callback');
 }
 
 // Panggilan HTTPS tanpa pustaka luar: satu file saja, tanpa dependensi.
@@ -64,7 +76,10 @@ function postForm(url, form) {
         let raw = '';
         res.on('data', (chunk) => { raw += chunk; });
         res.on('end', () => {
-          try { resolve(JSON.parse(raw)); } catch (error) { reject(new Error('Balasan GitHub tidak bisa dibaca')); }
+          let parsed;
+          try { parsed = JSON.parse(raw); } catch (error) { reject(new Error('Balasan GitHub tidak bisa dibaca')); return; }
+          // GitHub balas 200 walau gagal; error-nya ada di dalam body.
+          resolve(parsed);
         });
       }
     );
@@ -96,7 +111,15 @@ function getJson(url, accessToken) {
         let raw = '';
         res.on('data', (chunk) => { raw += chunk; });
         res.on('end', () => {
-          try { resolve(JSON.parse(raw)); } catch (error) { reject(new Error('Balasan GitHub tidak bisa dibaca')); }
+          let parsed;
+          try { parsed = JSON.parse(raw); } catch (error) { reject(new Error('Balasan GitHub tidak bisa dibaca')); return; }
+          // Token kedaluwarsa/diubah/userannya dicabut -> 401. Tanpa cek ini
+          // errornya Reading profile menyesatkan jadi "tidak punya email".
+          if (res.statusCode >= 400) {
+            reject(new Error(`GitHub menolak permintaan profil (${res.statusCode})`));
+            return;
+          }
+          resolve(parsed);
         });
       }
     );
@@ -107,7 +130,7 @@ function getJson(url, accessToken) {
   });
 }
 
-function cookieHeader(name, value, maxAgeMs) {
+function cookieHeader(req, name, value, maxAgeMs) {
   const parts = [
     `${name}=${value}`,
     'Path=/api/auth/github',
@@ -116,19 +139,17 @@ function cookieHeader(name, value, maxAgeMs) {
     `Max-Age=${Math.round(maxAgeMs / 1000)}`
   ];
 
-  if (env.frontendBaseUrl.startsWith('https://')) parts.push('Secure');
+  if (publicOrigin(req).startsWith('https://')) parts.push('Secure');
 
   return parts.join('; ');
 }
 
 function frontendRedirect(req, res) {
-  const base = env.frontendBaseUrl.replace(/\/+$/, '');
-  return `${base}/sso-callback.html`;
+  return `${publicOrigin(req)}/sso-callback.html`;
 }
 
 function backToLogin(req, res, reason) {
-  const base = env.frontendBaseUrl.replace(/\/+$/, '');
-  res.redirect(`${base}/index.html?${new URLSearchParams({ github: reason })}`);
+  res.redirect(`${publicOrigin(req)}/index.html?${new URLSearchParams({ github: reason })}`);
 }
 
 // Samakan nama GitHub dengan aturan username di aplikasi.
@@ -193,7 +214,7 @@ exports.start = asyncHandler(async (req, res) => {
     allow_signup: 'true'
   });
 
-  res.setHeader('Set-Cookie', cookieHeader(STATE_COOKIE, state, STATE_MAX_AGE_MS));
+  res.setHeader('Set-Cookie', cookieHeader(req, STATE_COOKIE, state, STATE_MAX_AGE_MS));
   res.redirect(`https://github.com/login/oauth/authorize?${params}`);
 });
 
@@ -211,9 +232,9 @@ exports.callback = asyncHandler(async (req, res) => {
 
   const code = String(req.query.code || '');
   const state = String(req.query.state || '');
-  const expected = String(req.cookies[STATE_COOKIE] || '');
+  const expected = readStateCookie(req);
 
-  res.setHeader('Set-Cookie', cookieHeader(STATE_COOKIE, '', 0));
+  res.setHeader('Set-Cookie', cookieHeader(req, STATE_COOKIE, '', 0));
 
   if (!code || !state || !expected || state !== expected) {
     throw new AppError(400, 'Permintaan login GitHub tidak valid');

@@ -248,6 +248,12 @@
   gap: 12px;
 }
 
+/* display:flex di atas mengalahkan aturan bawaan [hidden], jadi baris
+   OAuth harus disembunyikan ulang secara eksplisit. */
+.oauth-row[hidden] {
+  display: none;
+}
+
 .oauth-mark {
   width: 46px;
   height: 46px;
