@@ -103,16 +103,13 @@ body {
   z-index: 1;
   display: grid;
   place-items: center;
-  /* Kalau isi form lebih tinggi dari panel (mis. jendela browser pendek,
-     atau tombol Google yang menambah tinggi), sumbu Y boleh digulir.
-     Sebelumnya overflow: hidden di sini memotong bagian bawah tanpa
-     jalan scrolls. align-content 'safe' mencegah bagian atas ikut
-     terpotong saat konten melebihi tinggi panel. */
   align-content: safe center;
   width: 100%;
   height: 100%;
-  padding: clamp(14px, 3.6vh, 46px) clamp(20px, 3vw, 64px);
-  overflow-x: hidden;
-  overflow-y: auto;
+  /* Padding vertikal lebih rapat supaya seluruh form muat dalam satu
+     layar tanpa perlu digulir. */
+  padding: clamp(10px, 2.2vh, 40px) clamp(20px, 3vw, 64px);
+  /* Sengaja tanpa scroll: halaman login harus utuh dalam satu frame. */
+  overflow: hidden;
   overscroll-behavior: none;
 }
