@@ -12,6 +12,7 @@
   const state = {
     isReady: false,
     isSubmitting: false,
+    guardTimer: null,
     elements: {}
   };
 
@@ -115,6 +116,7 @@
 
   async function initialize() {
     selectDom();
+    surfaceSilentErrors();
 
     if (!state.elements.wrap) return;
 
@@ -211,8 +213,19 @@
     state.isSubmitting = true;
     showMessage('Memverifikasi akun Google...', 'success');
 
+    // Jaring pengaman: kalau nanti ternyata tidak pindah halaman, beri
+    // tahu apa yang terjadi daripada diam saja.
+    state.guardTimer = window.setTimeout(() => {
+      if (state.isSubmitting) {
+        showMessage('Google sudah mengirim akun, tapi server belum membalas. Muat ulang halaman lalu coba lagi.');
+      }
+    }, 15000);
+
     try {
       const data = await exchangeCredential(idToken);
+
+      window.clearTimeout(state.guardTimer);
+      state.guardTimer = null;
 
       saveAuthSession(data);
 
@@ -227,6 +240,9 @@
         window.location.href = APP_CONFIG.ROUTES.dashboard;
       }, 650);
     } catch (error) {
+      window.clearTimeout(state.guardTimer);
+      state.guardTimer = null;
+
       const message = error.network || error.abort
         ? error.message
         : error.message || 'Login dengan Google gagal';
@@ -236,6 +252,43 @@
     } finally {
       state.isSubmitting = false;
     }
+  }
+
+  // Google's popup sering gagal tanpa satu pesan pun di halaman: origin
+  // yang belum terdaftar di Google Cloud Console, FedCM yang ditolak
+  // browser, atau popup yang diblokir. Semua itu dilempar sebagai error
+  // global. Tulis ke halaman supaya tidak jadi "tidak ada yang terjadi".
+  function surfaceSilentErrors() {
+    const texts = {
+      160: 'Origin ini belum terdaftar di Google Cloud Console (Authorized JavaScript origins).',
+      189: 'Client ID Google tidak valid atau tombol belum aktif.',
+      2: 'Popup login Google diblokir browser. Izinkan popup untuk situs ini.',
+      3: 'Jendela login Google ditutup sebelum selesai.'
+    };
+
+    function describe(error) {
+      if (!error) return 'Kesalahan tidak diketahui';
+      const code = Number(error.code || error.error_code);
+      if (texts[code]) return texts[code];
+      if (/fedcm/i.test(String(error.type) + String(error.message))) {
+        return 'Browser memblokir FedCM dari Google. Coba nonaktifkan fitur experimental browser.';
+      }
+      return String(error.message || 'Kesalahan tidak diketahui');
+    }
+
+    window.addEventListener('error', (event) => {
+      const error = event.error;
+      const raw = (error && (error.message || error.code)) || event.message || '';
+      const match = /(\d{3})/.exec(String(raw));
+      if (!match && !/fedcm/i.test(String(raw))) return;
+      showMessage('Login Google gagal: ' + describe({ message: match ? match[0] : raw, code: match && match[1] }));
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+      const reason = event.reason;
+      if (!reason) return;
+      showMessage('Login Google gagal: ' + describe(reason));
+    });
   }
 
   // Sama seperti login biasa: token + user ditulis ke sessionStorage.
