@@ -83,19 +83,13 @@ CREATE TABLE IF NOT EXISTS students (
 );
 
 -- =================================================
--- SEED AKUN LOGIN (hash = Argon2id dari kata sandi)
--- Kata sandi akun demo (lih. scripts/generate-seed-hashes.js):
---   admin1#2026, admin2#2026, admin3#2026
---   student1#2026, student2#2026, student3#2026
+-- AKUN LOGIN
+-- Sengaja TIDAK ada seed akun demo di sini. Schema.sql dijalankan
+-- server.js setiap start, jadi `INSERT IGNORE` akan menghidupkan kembali
+-- akun admin1/student1..3 (sandi lemah tercetak di repo) setiap kali
+-- tabel users kosong. Akun dibuat lewat /api/auth/register.
+-- Hash demo lama: scripts/generate-seed-hashes.js (jangan dieksekusi otomatis).
 -- =================================================
-
-INSERT IGNORE INTO users (username, email, password_hash, account_token, full_name, role) VALUES
-  ('admin1', 'admin1@kampus.ac.id', '$argon2id$v=19$m=19456,p=1,t=2$0WXVjLRXEyTBVGMfVwlwyw$ReTC8xdccq9pl27+GbHaiXIl1zd8mkoerRTtKPrmaas', 'nz2GwSHbJrAEIH3', 'Admin Satu', 'admin'),
-  ('admin2', 'admin2@kampus.ac.id', '$argon2id$v=19$m=19456,p=1,t=2$XzywH3PKyjPnps+H/hcgog$FIf8BD7PUB8ykuY7uNJLrL6jp1gyL8yu6Myh/LvWQRg', '2mQEt0I9Hc9SrH8', 'Admin Dua', 'admin'),
-  ('admin3', 'admin3@kampus.ac.id', '$argon2id$v=19$m=19456,p=1,t=2$2DIyAN0xJTk4uaHpJG33wQ$0qIGwvu9zPZNp+sai+CVOn1eRB4wKu/Mt//CbuwoXjg', 'HhWqxp6I9UUgyRC', 'Admin Tiga', 'admin'),
-  ('student1', 'student1@student.kampus.ac.id', '$argon2id$v=19$m=19456,p=1,t=2$89fRpQgxNgHOY97Zxn7Pog$lDfPGurhfZz/2CTxHCuoaUxOTbt9tHAOxKUQGVIj+60', 'eR3IIuEdb196nDj', 'Mahasiswa Satu', 'mahasiswa'),
-  ('student2', 'student2@student.kampus.ac.id', '$argon2id$v=19$m=19456,p=1,t=2$KNwTdbg27lKxSA2eXHN6sA$onZBwZ/Pmbt+EMQ3P+k1RbqWbd9CNg6AhEC0TsMw29Y', 'TJZxC6pDBBSX1TR', 'Mahasiswa Dua', 'mahasiswa'),
-  ('student3', 'student3@student.kampus.ac.id', '$argon2id$v=19$m=19456,p=1,t=2$w8Cqi7RqhWkuZ2250JaLNg$mfgNqATXUTuRB6XK4s2j57/hC75cnPoQrVvPDNVND9A', 'rEIUryxWeeliOKk', 'Mahasiswa Tiga', 'mahasiswa');
 -- =================================================
 -- MATERIALS (file materi tiap kelas, khusus admin)
 -- =================================================

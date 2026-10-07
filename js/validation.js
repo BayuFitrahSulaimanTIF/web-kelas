@@ -21,7 +21,10 @@ window.Validator = {
   // ===================================================
 
   isValidUsername(value) {
-    return /^[a-zA-Z0-9._-]+$/.test(value);
+    // Spasi diizinkan karena username dipakai nama lengkap
+    // ("Klement Ezra Suhartanto"). Spasi ganda dan spasi di ujung
+    // tetap ditolak.
+    return /^[a-zA-Z0-9._-]+(?: [a-zA-Z0-9._-]+)*$/.test(String(value || '').trim());
   },
 
   validateUsername(value) {

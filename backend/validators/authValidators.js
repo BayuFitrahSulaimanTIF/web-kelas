@@ -3,7 +3,10 @@
 // Mengembalikan object errors (kosong jika valid)
 // ===================================================
 
-const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,50}$/;
+// Username boleh memakai spasi karena dipakai sebagai nama lengkap
+// (mis. "Klement Ezra Suhartanto"). Spasi ganda dan spasi di ujung tetap
+// ditolak oleh pola di bawah.
+const USERNAME_PATTERN = /^[a-zA-Z0-9._-]+(?: [a-zA-Z0-9._-]+)*$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_PATTERN = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*()]).{8,128}$/;
 const ALLOWED_ROLES = ['admin', 'dosen', 'mahasiswa', 'student'];
@@ -51,7 +54,9 @@ function validateRegister(payload) {
   if (!username) {
     errors.username = 'Username wajib diisi';
   } else if (!USERNAME_PATTERN.test(username)) {
-    errors.username = 'Username 3-50 karakter (hanya huruf, angka, titik, garis bawah, strip)';
+    errors.username = 'Username 3-50 karakter (huruf, angka, titik, garis bawah, strip, spasi)';
+  } else if (username.length > 50) {
+    errors.username = 'Username maksimal 50 karakter';
   }
 
   if (!firstName) {
