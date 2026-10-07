@@ -230,9 +230,10 @@
 }
 
 /* Login Google: tombolnya dirender Google, jadi yang distyle
-   hanya wadahnya agar sejajar dengan tombol lain. */
+   hanya wadahnya agar sejajar dengan tombol lain. Jaraknya ikut
+   vh supaya tidak memakan tinggi pada jendela browser pendek. */
 .google-login {
-  margin-top: 12px;
+  margin-top: clamp(6px, 1.2vh, 12px);
   display: flex;
   flex-direction: column;
   gap: 10px;

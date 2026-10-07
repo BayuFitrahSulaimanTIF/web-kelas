@@ -7,7 +7,13 @@ body {
   min-width: 0;
   height: 100vh;
   height: 100dvh;
-  overflow: hidden;
+  /* Sumbu Y boleh digulir. Sebelumnya overflow: hidden, padahal isi form
+     bisa lebih tinggi daripada jendela (mis. jendela browser pendek, atau
+     tambahan tinggi tombol Google). Hasilnya bagian bawah terpotong dan
+     tidak ada cara menampilkannya. Pada layar yang cukup tinggi tidak
+     ada scrollbar sama sekali, jadi tampilannya tidak berubah. */
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: var(--shell-padding);
   font-family: var(--font-family-base);
   font-size: var(--font-size-base);
@@ -22,6 +28,11 @@ body {
 .auth-shell {
   display: grid;
   grid-template-columns: minmax(0, var(--hero-width)) minmax(0, var(--auth-width));
+  /* Baris dikunci setinggi shell. Tanpa ini baris ikut melar mengikuti isi
+     form, lalu overflow:hidden pada shell memotong bagian bawah tanpa
+     ada cara menggulir. minmax(0, 1fr) membuat .login-container (yang
+     height:100%) ikut terikat dan bisa menggulir sendiri. */
+  grid-template-rows: minmax(0, 1fr);
   width: 100%;
   height: calc(100vh - (var(--shell-padding) * 2));
   height: calc(100dvh - (var(--shell-padding) * 2));
@@ -88,15 +99,20 @@ body {
 /* ================================================= */
 
 .login-container {
-  /* Panel kanan (form) terkunci: overflow hidden menutup
-     sumbu vertikal, horizontal, dan diagonal (tanpa scroll). */
   position: relative;
   z-index: 1;
   display: grid;
   place-items: center;
+  /* Kalau isi form lebih tinggi dari panel (mis. jendela browser pendek,
+     atau tombol Google yang menambah tinggi), sumbu Y boleh digulir.
+     Sebelumnya overflow: hidden di sini memotong bagian bawah tanpa
+     jalan scrolls. align-content 'safe' mencegah bagian atas ikut
+     terpotong saat konten melebihi tinggi panel. */
+  align-content: safe center;
   width: 100%;
   height: 100%;
   padding: clamp(14px, 3.6vh, 46px) clamp(20px, 3vw, 64px);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: none;
 }
