@@ -1,9 +1,9 @@
 // ===================================================
 // LOGIN LEWAT GOOGLE
-// Pustaka Google Identity Services menampilkan tombolnya sendiri.
-// Callback-nya kirim ID token ke backend; backend yang verifikasi
-// dan menerbitkan sesi. Client ID diambil dari /auth/google/config
-// supaya tidak ditulis ulang di sini.
+// Pustaka Google Identity Services yang menggambar tombolnya.
+// Callback-nya mengirim ID token ke backend; backend yang
+// verifikasi dan menerbitkan sesi. Client ID dibaca dari
+// /auth/google/config supaya tidak ditulis ulang di sini.
 // ===================================================
 
 (function () {
@@ -16,6 +16,10 @@
   };
 
   const SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
+  const CONNECT_TIMEOUT_MS = 20000;
+  const CONNECT_POLL_MS = 400;
+  const CONFIG_RETRY_MS = 1500;
+  const CONFIG_MAX_RETRY = 4;
 
   function selectDom() {
     state.elements = {
@@ -23,6 +27,50 @@
       mount: document.getElementById('google-signin-button'),
       message: document.getElementById('google-message')
     };
+  }
+
+  function showMessage(text, type) {
+    if (state.elements.message) UI.setMessage(state.elements.message, text, type);
+  }
+
+  function wait(ms) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+  }
+
+  // connectivity.js membungkus window.Api.request sehingga melempar
+  // 'Offline' selama pemeriksaan koneksi masih berjalan. Statusnya
+  // berubah lewat event app:connection, jadi tunggu di sini alih-alih
+  // langsung meminta config dan gagal.
+  function waitForServer() {
+    if (window.Connectivity && window.Connectivity.isOnline()) return Promise.resolve(true);
+
+    return new Promise((resolve) => {
+      let settled = false;
+
+      function finish(ok) {
+        if (settled) return;
+        settled = true;
+        document.removeEventListener('app:connection', onChange);
+        resolve(ok);
+      }
+
+      function onChange(event) {
+        if (event.detail && event.detail.online) finish(true);
+      }
+
+      document.addEventListener('app:connection', onChange);
+
+      // Jangan menggantung selamanya kalau connectivity.js tidak ada.
+      window.setTimeout(() => finish(false), CONNECT_TIMEOUT_MS);
+      window.setTimeout(function poll() {
+        if (settled) return;
+        if (window.Connectivity && window.Connectivity.isOnline()) {
+          finish(true);
+          return;
+        }
+        window.setTimeout(poll, CONNECT_POLL_MS);
+      }, CONNECT_POLL_MS);
+    });
   }
 
   function loadGoogleScript() {
@@ -49,30 +97,46 @@
     });
   }
 
+  // Server menentukan apakah fitur ini hidup. Ngrok sering lambat
+  // setelah menganggur, jadi coba beberapa kali sebelum menyerah.
+  async function fetchConfig() {
+    for (let attempt = 0; attempt <= CONFIG_MAX_RETRY; attempt++) {
+      try {
+        return await window.Api.request('/auth/google/config');
+      } catch (error) {
+        if (attempt === CONFIG_MAX_RETRY) throw error;
+        await wait(CONFIG_RETRY_MS * (attempt + 1));
+      }
+    }
+    return null;
+  }
+
   async function initialize() {
     selectDom();
 
     if (!state.elements.wrap) return;
 
-    // Server yang menentukan apakah fitur ini hidup. Kalau
-    // GOOGLE_CLIENT_ID belum diisi, tombolnya tidak muncul sama sekali.
-    let config;
-try {
-                config = await window.Api.request('/auth/google/config');
-              } catch (error) {
-                // Server tidak terjangkau. Tampilkan wadahnya dengan pesan,
-                // jangan hilangkan tanpa jejak.
-                state.elements.wrap.hidden = false;
-                UI.setMessage(state.elements.message, 'Server belum terhubung. Login email tetap bisa dipakai.');
-                return;
-              }
-
-    if (!config || !config.enabled || !config.clientId) return;
-
-    // Tampilkan wadah DULU. renderButton() mengukur lebar induknya, dan
-    // induk yang masih `hidden` (display:none) berukuran 0 -> Google
-    // melempar error dan tidak menggambar apa pun.
+    const online = await waitForServer();
     state.elements.wrap.hidden = false;
+
+    if (!online) {
+      showMessage('Server belum terhubung. Login email tetap bisa dipakai.');
+      return;
+    }
+
+    let config;
+    try {
+      config = await fetchConfig();
+    } catch (error) {
+      showMessage('Server belum terhubung. Login email tetap bisa dipakai.');
+      return;
+    }
+
+    // GOOGLE_CLIENT_ID belum diisi: tombol memang sengaja disembunyikan.
+    if (!config || !config.enabled || !config.clientId) {
+      state.elements.wrap.hidden = true;
+      return;
+    }
 
     try {
       const google = await loadGoogleScript();
@@ -82,8 +146,9 @@ try {
         callback: handleCredential
       });
 
+      // Wadah sudah terlihat di atas; renderButton() mengukur lebar induknya
+      // dan tidak menggambar apa pun jika induknya masih display:none.
       const available = state.elements.mount.clientWidth || 360;
-      // Google hanya menerima lebar 120-400 px.
       const width = Math.max(120, Math.min(400, Math.floor(available)));
 
       google.accounts.id.renderButton(state.elements.mount, {
@@ -96,14 +161,11 @@ try {
 
       state.isReady = true;
     } catch (error) {
-      // Kegagalan di sini tidak boleh diam-diam hilang: itu sebabnya
-      // orang mengira tombolnya tidak pernah ada. Login email tetap jalan.
-      state.elements.wrap.hidden = false;
+      // Jangan hilang tanpa jejak. Origin yang belum didaftarkan di Google
+      // Cloud Console memunculkan error 160 di sini; tampilkan agar bisa
+      // dibaca, tanpa mengganggu login email.
       state.elements.mount.textContent = '';
-      UI.setMessage(
-        state.elements.message,
-        'Login dengan Google gagal dimuat. Periksa koneksi atau muat ulang halaman.'
-      );
+      showMessage('Login dengan Google gagal dimuat. Periksa koneksi atau muat ulang halaman.');
     }
   }
 
@@ -114,7 +176,7 @@ try {
     if (!idToken) return;
 
     state.isSubmitting = true;
-    UI.setMessage(state.elements.message, '');
+    showMessage('');
 
     try {
       const data = await window.Api.request('/auth/google', {
@@ -128,7 +190,7 @@ try {
         ? 'Akun dibuat dari Google, masuk...'
         : 'Login berhasil, mengalihkan...';
 
-      UI.setMessage(state.elements.message, note, 'success');
+      showMessage(note, 'success');
       UI.showToast(note, 'success');
 
       window.setTimeout(() => {
@@ -139,7 +201,7 @@ try {
         ? error.message
         : error.message || 'Login dengan Google gagal';
 
-      UI.setMessage(state.elements.message, message);
+      showMessage(message);
       UI.showToast(message, 'error');
     } finally {
       state.isSubmitting = false;
