@@ -165,16 +165,25 @@
 
       // Wadah sudah terlihat di atas; renderButton() mengukur lebar induknya
       // dan tidak menggambar apa pun jika induknya masih display:none.
-      const available = state.elements.mount.clientWidth || 360;
-      const width = Math.max(120, Math.min(400, Math.floor(available)));
-
+      //
+      // Lebar 120 px adalah nilai terkecil yang diterima Google. Tombolnya
+      // sendiri tidak terlihat: CSS_login.css mengecilkannya jadi bujur
+      // sangkar 46 px dan membuatnya transparan, lalu meletakkannya di atas
+      // ikon Google yang terlihat. Jadi yang diklik tetikus selalu tombol
+      // asli Google, dan jendela login-nya tetap terbuka seperti biasa.
       google.accounts.id.renderButton(state.elements.mount, {
         theme: 'outline',
         size: 'large',
-        width,
+        width: 120,
         text: 'continue_with',
         locale: 'id'
       });
+
+      // Label yang lebih jelas, karena yang tampil hanya ikon.
+      const realButton = state.elements.mount.querySelector('[role="button"]');
+      if (realButton) {
+        realButton.setAttribute('aria-label', 'Masuk dengan Google');
+      }
 
       state.isReady = true;
     } catch (error) {
