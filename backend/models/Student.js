@@ -28,6 +28,25 @@ const Student = {
       ['active']
     );
     return rows;
+  },
+
+  // Catat mahasiswa yang ditemukan lewat login Google. Kalau NIM-nya sudah
+  // ada di tabel students, datanya tidak ditimpa.
+  async upsertFromNim({ nim, fullName, email, angkatan, programStudi, ssoPasswordHash }) {
+    const [existing] = await db.query(
+      'SELECT nim FROM students WHERE nim = ? LIMIT 1',
+      [nim]
+    );
+
+    if (existing.length) return false;
+
+    await db.query(
+      `INSERT INTO students (nim, full_name, email, program_studi, angkatan, status, sso_password_hash)
+       VALUES (?, ?, ?, ?, ?, 'active', ?)`,
+      [nim, fullName, email, programStudi, angkatan || null, ssoPasswordHash]
+    );
+
+    return true;
   }
 };
 

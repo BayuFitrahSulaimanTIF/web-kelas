@@ -92,6 +92,13 @@ const User = {
     return rows.length > 0;
   },
 
+  async updateNim(id, nim) {
+    await db.execute(
+      'UPDATE users SET nim = ? WHERE id = ?',
+      [nim || null, id]
+    );
+  },
+
   // Hashing dilakukan di utils/passwordCodec.js (Argon2id);
   // model hanya menyimpan hasil hash.
   async updatePassword(id, passwordHash) {
