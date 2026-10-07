@@ -61,6 +61,14 @@ app.use(helmet({
     }
   },
   crossOriginEmbedderPolicy: false,
+  // COOP WAJIB dimatikan untuk login Google. Helmet mengaktifkan
+  // 'same-origin' secara default, yang membuat window.opener bernilai
+  // null di popup Google. Popup itu mengirim credential balik lewat
+  // postMessage; tanpa opener, halaman accounts.google.com/gsi/transform
+  // menggantung putih selamanya, popup tidak menutup, dan callback
+  // tidak pernah terpanggil. COOP tidak berguna di sini karena COEP
+  // sudah dimatikan (tidak ada SharedArrayBuffer yang dipakai).
+  crossOriginOpenerPolicy: false,
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 const _corsAllow = String(env.corsOrigin || 'http://localhost:3000').split(',').map(s=>s.trim()).filter(Boolean);
