@@ -67,8 +67,11 @@ exports.start = asyncHandler(async (req, res) => {
   const params = new URLSearchParams({
     client_id: appId,
     redirect_uri: callbackUrl(req),
+    // Facebook menolak dialog dengan "Invalid Scopes: email" kalau scope
+    // email dikirim. Email sekarang ikut sebagai field profil, jadi scope
+    // yang benar hanya public_profile.
+    scope: 'public_profile',
     state,
-    scope: 'email',
     response_type: 'code'
   });
 

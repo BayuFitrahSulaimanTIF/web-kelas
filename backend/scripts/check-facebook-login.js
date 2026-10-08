@@ -31,7 +31,8 @@ check('start & callback dibatasi rate limiter', (routes.match(/limiter,/g) || []
 console.log('');
 console.log('-- flow OAuth --');
 check('tukar code di graph.facebook.com', /graph\.facebook\.com.*oauth\/access_token/.test(ctrl));
-check('scope email diminta', /scope: 'email'/.test(ctrl));
+check('scope public_profile, bukan email', /scope: 'public_profile'/.test(ctrl), 'email ditolak dialog');
+check('email diambil dari field profil', /fields: 'id,name,email,picture\.type\(large\)'/.test(ctrl));
 check('state acak 16 byte', shared.includes('crypto.randomBytes(16)'));
 check('state diverifikasi', /state !== expected/.test(ctrl));
 check('callback tolak request tanpa state', /!code \|\| !state \|\| !expected/.test(ctrl));
