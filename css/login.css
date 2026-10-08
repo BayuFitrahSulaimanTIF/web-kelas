@@ -242,6 +242,9 @@
 .oauth-row {
   position: relative;
   margin-top: clamp(5px, 0.9vh, 10px);
+  /* Pembatas "atau" di bawah baris ini dihapus, jadi jaraknya harus
+     datang dari margin supaya tombol SSO tidak menempel. */
+  margin-bottom: clamp(8px, 1.4vh, 16px);
   display: flex;
   justify-content: center;
   align-items: center;
