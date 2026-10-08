@@ -6,6 +6,7 @@ saved_library.json
 jadwal.json
 banners.json
 news.json
+cards.json
 library_meta.json
 .watchdog.pid
 .supervisor.pid

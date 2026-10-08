@@ -19,6 +19,8 @@ const ssoRoutes = require('./routes/sso');
 const googleAuthRoutes = require('./routes/googleAuth');
 const githubAuthRoutes = require('./routes/githubAuth');
 const facebookAuthRoutes = require('./routes/facebookAuth');
+const cardRoutes = require('./routes/cards');
+const { CARD_IMG_DIR } = require('./utils/cardsStore');
 const fileRoutes = require('./routes/files');
 const userRoutes = require('./routes/users');
 const notificationRoutes = require('./routes/notifications');
@@ -913,6 +915,11 @@ app.use('/api/auth/sso', ssoRoutes);
 app.use('/api/auth/google', googleAuthRoutes);
 app.use('/api/auth/github', githubAuthRoutes);
 app.use('/api/auth/facebook', facebookAuthRoutes);
+app.use('/api/cards', cardRoutes);
+app.use('/uploads/cards', express.static(CARD_IMG_DIR, {
+  maxAge: 0,
+  setHeaders: (res) => res.set('X-Content-Type-Options', 'nosniff')
+}));
 app.use('/api/files', fileRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);

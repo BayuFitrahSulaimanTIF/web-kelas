@@ -740,7 +740,7 @@ main {
 /* ========== FILM SCROLLYTELLING BERANDA ========== */
 .film {
   position: relative;
-  height: 1020vh; /* 6 babak x 170vh ruang scroll */
+  height: 1190vh; /* 7 babak x 170vh ruang scroll */
 }
 
 .film-viewer {

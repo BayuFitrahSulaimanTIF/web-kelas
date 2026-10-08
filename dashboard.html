@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Press+Start+2P&family=VT323&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/images/logo/logo-unesa.png">
   <link rel="stylesheet" href="style.css?v=20261006-mention">
+  <link rel="stylesheet" href="css/cards.css?v=20261008-cards3">
 </head>
 <body>
 
@@ -531,7 +532,59 @@
                   </figcaption>
                 </figure>
 
-                <figure class="film-slide" data-scene-name="KRS" data-goto-page="1" data-motion="pan-right">
+                <!-- ============ CARD CAROUSEL (7 kartu) ============ -->
+                <!-- Setiap kartu memuat gambar + judul. Klik kartunya untuk
+                     mengganti gambar dengan deskripsi; judulGFPGEGIa
+                     dari pojok kiri bawah ke tengah atas. Isi kartu hanya
+                     boleh diubah oleh akun admin "Klement Ezra Suhartanto". -->
+                <figure class="film-slide cards-scene" data-scene-name="Kartu" data-motion="hold">
+                  <div class="cards-area">
+                    <div class="cards-row">
+                    <button class="card-nav card-nav-prev" id="card-prev" type="button" aria-label="Kartu sebelumnya">&#8249;</button>
+
+                    <article class="card-shell" id="card-shell">
+                      <div class="card-media" id="card-media">
+                        <img id="card-img" alt="" />
+                        <span class="card-media-empty" id="card-media-empty">Belum ada gambar</span>
+                      </div>
+
+                      <div class="card-body" id="card-body">
+                        <h3 class="card-body-text" id="card-desc"></h3>
+                      </div>
+
+                      <h3 class="card-title" id="card-title"></h3>
+
+                      <button class="card-back" id="card-back" type="button" aria-label="Kembali ke gambar" hidden>
+                        <span aria-hidden="true">&#8249;</span> Kembali
+                      </button>
+                    </article>
+
+                    <button class="card-nav card-nav-next" id="card-next" type="button" aria-label="Kartu berikutnya">&#8250;</button>
+                    </div>
+
+                    <div class="card-dots" id="card-dots" aria-label="Pilih kartu"></div>
+
+                    <!-- Panel edit: hanya tampil untuk akun editor -->
+                    <div class="card-editor" id="card-editor" hidden>
+                      <div class="card-editor-panel">
+                        <p class="card-editor-title">Ubah Kartu <span id="card-editor-slot"></span></p>
+                        <label class="card-editor-label" for="card-edit-title">Judul</label>
+                        <input type="text" id="card-edit-title" maxlength="120" />
+                        <label class="card-editor-label" for="card-edit-desc">Deskripsi</label>
+                        <textarea id="card-edit-desc" maxlength="800" rows="4"></textarea>
+                        <div class="card-editor-actions">
+                          <input type="file" id="card-edit-file" accept="image/png,image/jpeg,image/webp,image/gif" />
+                          <button type="button" class="card-editor-btn" id="card-edit-upload">Unggah Gambar</button>
+                          <button type="button" class="card-editor-btn" id="card-edit-save">Simpan Teks</button>
+                          <button type="button" class="card-editor-btn card-editor-btn-danger" id="card-edit-remove">Hapus Gambar</button>
+                        </div>
+                        <p class="card-editor-note" id="card-editor-note"></p>
+                      </div>
+                    </div>
+                  </div>
+                </figure>
+
+                <figure class="film-slide" data-scene-name="KRS" data-goto-page="2" data-motion="pan-right">
                   <img class="film-img" src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1920&h=1080&fit=crop&q=80" alt="Rak buku hitam putih">
                   <figcaption class="chapter-copy">
                     <p class="chapter-kicker">Kelas</p>
@@ -540,7 +593,7 @@
                   </figcaption>
                 </figure>
 
-                <figure class="film-slide" data-scene-name="Komunitas" data-goto-page="2" data-motion="zoom-out">
+                <figure class="film-slide" data-scene-name="Komunitas" data-goto-page="3" data-motion="zoom-out">
                   <img class="film-img" src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=1920&h=1080&fit=crop&q=80" alt="Orang berdiskusi hitam putih">
                   <figcaption class="chapter-copy">
                     <p class="chapter-kicker">Komunitas</p>
@@ -549,7 +602,7 @@
                   </figcaption>
                 </figure>
 
-                <figure class="film-slide" data-scene-name="Berita" data-goto-page="3" data-motion="pan-left">
+                <figure class="film-slide" data-scene-name="Berita" data-goto-page="4" data-motion="pan-left">
                   <img class="film-img" src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1920&h=1080&fit=crop&q=80" alt="Tumpukan koran hitam putih">
                   <figcaption class="chapter-copy">
                     <p class="chapter-kicker">Berita</p>
@@ -558,7 +611,7 @@
                   </figcaption>
                 </figure>
 
-                <figure class="film-slide" data-scene-name="Perpustakaan" data-goto-page="4" data-motion="zoom-deep">
+                <figure class="film-slide" data-scene-name="Perpustakaan" data-goto-page="5" data-motion="zoom-deep">
                   <img class="film-img" src="https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=1920&h=1080&fit=crop&q=80" alt="Ruang perpustakaan hitam putih">
                   <figcaption class="chapter-copy">
                     <p class="chapter-kicker">Perpustakaan</p>
@@ -1522,7 +1575,7 @@
       const filmLeak = document.getElementById('film-leak');
       const filmParticlesEl = document.getElementById('film-particles');
       const NUM_SCENES = filmSlides.length;
-      const FILM_NAV = { 1: 'class', 2: 'community', 3: 'news', 4: 'library' };
+      const FILM_NAV = { 2: 'class', 3: 'community', 4: 'news', 5: 'library' };
       let filmTgt = 0;
       let filmCur = -1;
       let filmRaf = null;
@@ -1878,7 +1931,7 @@
           var h = pageHomeEl.clientHeight;
           if (!h || !filmViewerEl) return;
           filmViewerEl.style.height = h + 'px';
-          filmEl.style.height = Math.round(h * 10.2) + 'px'; // 6 babak x 170%
+          filmEl.style.height = Math.round(h * 11.9) + 'px'; // 7 babak x 170%
           storyQueue();
         }
         sizeFilm();
@@ -3259,6 +3312,206 @@
             .catch((e) => window.alert(e.message || 'Gagal menghapus foto profil.'));
         });
       }
+
+      // ---------- Card Carousel beranda ----------
+      // Tujuh kartu. Tiap kartu menampilkan gambar + judul di pojok kiri
+      // bawah; diklik maka gambar diganti deskripsi dan judul naik ke
+      // tengah atas. Tombol panah kiri mengembalikan ke gambar.
+      (function initCards() {
+        var shell = document.getElementById('card-shell');
+        if (!shell) return;
+
+        var img = document.getElementById('card-img');
+        var media = document.getElementById('card-media');
+        var mediaEmpty = document.getElementById('card-media-empty');
+        var bodyEl = document.getElementById('card-body');
+        var descEl = document.getElementById('card-desc');
+        var titleEl = document.getElementById('card-title');
+        var backBtn = document.getElementById('card-back');
+        var dotsEl = document.getElementById('card-dots');
+        var prevBtn = document.getElementById('card-prev');
+        var nextBtn = document.getElementById('card-next');
+
+        var editorBox = document.getElementById('card-editor');
+        var editorSlot = document.getElementById('card-editor-slot');
+        var editorNote = document.getElementById('card-editor-note');
+        var editTitle = document.getElementById('card-edit-title');
+        var editDesc = document.getElementById('card-edit-desc');
+        var editFile = document.getElementById('card-edit-file');
+        var btnUpload = document.getElementById('card-edit-upload');
+        var btnSave = document.getElementById('card-edit-save');
+        var btnRemove = document.getElementById('card-edit-remove');
+
+        var CARDS = [];
+        var idx = 0;
+        var canEdit = false;
+        var open = false;          // kartu sedang menampilkan deskripsi?
+        var lastFocus = null;
+
+        function slotOf(card) { return card ? card.slot : idx + 1; }
+
+        function renderDots() {
+          dotsEl.innerHTML = '';
+          CARDS.forEach(function (card, i) {
+            var dot = document.createElement('button');
+            dot.type = 'button';
+            dot.className = 'card-dot' + (i === idx ? ' is-active' : '');
+            dot.setAttribute('aria-label', 'Kartu ' + card.slot);
+            dot.addEventListener('click', function () { close(); show(i); });
+            dotsEl.appendChild(dot);
+          });
+        }
+
+        // Klik pada kartu mana pun juga membuka, kecuali tombol/tautan di dalamnya.
+        function isInteractive(node) {
+          return !!(node && node.closest && node.closest('button, a, input, textarea, select, label'));
+        }
+
+        function show(i) {
+          if (!CARDS.length) return;
+          if (i < 0) i = CARDS.length - 1;
+          if (i >= CARDS.length) i = 0;
+          idx = i;
+          var card = CARDS[idx];
+
+          titleEl.textContent = card.title || 'Tanpa judul';
+
+          if (card.image) {
+            img.src = card.image;
+            img.alt = card.title || '';
+            img.hidden = false;
+            mediaEmpty.hidden = true;
+          } else {
+            img.removeAttribute('src');
+            img.hidden = true;
+            mediaEmpty.hidden = false;
+          }
+
+          descEl.textContent = card.description || '';
+          renderDots();
+          syncEditor();
+        }
+
+        function openCard() {
+          if (open) return;
+          open = true;
+          shell.classList.add('is-open');
+          backBtn.hidden = false;
+          if (canEdit && editorBox) editorBox.classList.add('is-pushed');
+        }
+
+        function closeCard() {
+          if (!open) return;
+          open = false;
+          shell.classList.remove('is-open');
+          backBtn.hidden = true;
+          if (canEdit && editorBox) editorBox.classList.remove('is-pushed');
+          if (lastFocus && lastFocus.focus) lastFocus.focus();
+        }
+
+        function syncEditor() {
+          if (!canEdit || !editorBox) return;
+          var card = CARDS[idx];
+          editorSlot.textContent = card.slot;
+          editTitle.value = card.title || '';
+          editDesc.value = card.description || '';
+          editorNote.textContent = '';
+        }
+
+        function note(msg, isError) {
+          editorNote.textContent = msg || '';
+          editorNote.classList.toggle('is-error', !!isError);
+        }
+
+        // ---------- editor ----------
+        function afterSave(message) {
+          return fetchAuth(API_ORIGIN + '/api/cards/' + slotOf(CARDS[idx]), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: editTitle.value, description: editDesc.value })
+          })
+            .then(function () { return loadCards(); })
+            .then(function () { note(message || 'Tersimpan', false); });
+        }
+
+        function bindEditor() {
+          if (!canEdit) return;
+
+          btnSave.addEventListener('click', function () {
+            btnSave.disabled = true;
+            afterSave('Tersimpan').catch(function (e) { note(e.message || 'Gagal menyimpan', true); })
+              .finally(function () { btnSave.disabled = false; });
+          });
+
+          btnUpload.addEventListener('click', function () {
+            if (!editFile.files || !editFile.files[0]) { note('Pilih gambar dulu', true); return; }
+            btnUpload.disabled = true;
+            var fd = new FormData();
+            fd.append('image', editFile.files[0]);
+            fetchAuth(API_ORIGIN + '/api/cards/' + slotOf(CARDS[idx]) + '/image', { method: 'POST', body: fd })
+              .then(function () { return loadCards(); })
+              .then(function () { note('Gambar tersimpan', false); })
+              .catch(function (e) { note(e.message || 'Gagal mengunggah gambar', true); })
+              .finally(function () { btnUpload.disabled = false; editFile.value = ''; });
+          });
+
+          btnRemove.addEventListener('click', function () {
+            btnRemove.disabled = true;
+            fetchAuth(API_ORIGIN + '/api/cards/' + slotOf(CARDS[idx]) + '/image', { method: 'DELETE' })
+              .then(function () { return loadCards(); })
+              .then(function () { note('Gambar dihapus', false); })
+              .catch(function (e) { note(e.message || 'Gagal menghapus gambar', true); })
+              .finally(function () { btnRemove.disabled = false; });
+          });
+        }
+
+        function loadCards() {
+          return fetch(API_ORIGIN + '/api/cards', { headers: authHeaders() })
+            .then(function (r) {
+              if (!r.ok) throw new Error('Gagal memuat kartu');
+              return r.json();
+            })
+            .then(function (data) {
+              CARDS = data.cards || [];
+              show(idx);
+            });
+        }
+
+        // ---------- event ----------
+        prevBtn.addEventListener('click', function () { closeCard(); show(idx - 1); });
+        nextBtn.addEventListener('click', function () { closeCard(); show(idx + 1); });
+        backBtn.addEventListener('click', function (e) { e.stopPropagation(); closeCard(); });
+
+        shell.addEventListener('click', function (e) {
+          if (isInteractive(e.target)) return;
+          lastFocus = document.activeElement;
+          openCard();
+        });
+
+        document.addEventListener('keydown', function (e) {
+          if (!open) return;
+          if (e.key === 'Escape') closeCard();
+        });
+
+        // Hanya boleh mengedit bila server bilang boleh.
+        fetch(API_ORIGIN + '/api/cards/whoami', { headers: authHeaders() })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) {
+            canEdit = !!(d && d.editor);
+            if (!canEdit) return;
+            editorBox.hidden = false;
+            bindEditor();
+            // Data kartu sudah dimuat sebelum whoami selesai, jadi panel
+            // edit baru bisa diisi di sini.
+            syncEditor();
+          })
+          .catch(function () {});
+
+        loadCards().catch(function () {
+          mediaEmpty.textContent = 'Kartu belum bisa dimuat';
+          titleEl.textContent = 'Gagal memuat kartu';
+        });
+      })();
 
       // ---------- Carousel ----------
       const track = document.getElementById('carousel-track');
