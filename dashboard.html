@@ -204,6 +204,8 @@
             current.bio = (data.user && data.user.bio) || '';
             sessionStorage.setItem(USER_KEY, JSON.stringify(current));
             renderProfile(current);
+            // Kartu di daftar Students ikut berubah tanpa perlu refresh.
+            if (typeof window.syncStudentsUser === 'function') window.syncStudentsUser(current);
             closeBioEditor();
           })
           .catch(function () {
@@ -2540,6 +2542,7 @@
       // ---------- Sub-navigasi Students (daftar anggota mahasiswa) ----------
       let studentsCache = null;
       let studentsMode = 'table';
+      let studentsPrint = '';
       const studentsModeBtn = document.getElementById('students-mode-btn');
       function showKrsView() {
         const krsView = document.getElementById('class-krs-view');
@@ -2807,6 +2810,20 @@
           studentsModeBtn.title = studentsMode === 'table' ? 'Tampilkan sebagai kartu profil' : 'Tampilkan sebagai tabel';
         }
       }
+      // Daftar mahasiswa ikut berubah realtime: bio/foto profil bisa
+      // diubah dari tab atau perangkat lain, jadi cache di-refresh
+      // otomatis. Fingerprint dipakai supaya render hanya jalan kalau
+      // datanya memang beda.
+      const STUDENTS_POLL_MS = 15000;
+      function studentsFingerprint(users) {
+        return (users || []).map(function (u) {
+          return [u.id, u.avatar || '', u.bio || '', u.full_name || '', u.is_active ? 1 : 0].join('|');
+        }).join('\n');
+      }
+      function fetchStudents() {
+        return fetch(API_ORIGIN + '/api/users/students', { headers: authHeaders() })
+          .then(r => r.json());
+      }
       function loadStudents() {
         const listEl = document.getElementById('students-list');
         if (studentsCache) {
@@ -2814,15 +2831,34 @@
           return;
         }
         listEl.innerHTML = '<p class="students-loading">Memuat daftar...</p>';
-        fetch(API_ORIGIN + '/api/users/students', { headers: authHeaders() })
-          .then(r => r.json())
+        fetchStudents()
           .then(data => {
             studentsCache = data.users || [];
+            studentsPrint = studentsFingerprint(studentsCache);
             renderStudents(studentsCache);
           })
           .catch(() => {
             listEl.innerHTML = '<p class="students-error">Gagal memuat daftar mahasiswa.</p>';
           });
+      }
+      // Hanya selama halaman Students yang terlihat, supaya tidak buang
+      // request saat user sedang di halaman lain.
+      function pollStudents() {
+        if (document.getElementById('students-view').style.display === 'none') return;
+        if (!studentsCache || document.hidden) return;
+        fetchStudents()
+          .then(data => {
+            const users = data.users || [];
+            const print = studentsFingerprint(users);
+            if (print === studentsPrint) return;
+            studentsPrint = print;
+            studentsCache = users;
+            const listEl = document.getElementById('students-list');
+            const scrollTop = listEl.scrollTop;
+            renderStudents(users);
+            listEl.scrollTop = scrollTop;
+          })
+          .catch(() => {});
       }
       function genderLabel(g) {
         if (g === 'male') return 'Laki-laki';
@@ -2834,13 +2870,23 @@
         // belakang) sama seperti avatar aside, biar konsisten antar kartu.
         return u.avatar ? (window.__EXT_API || '') + '/uploads/avatars/' + encodeURIComponent(u.avatar) : window.initialsAvatarSrc(u);
       }
-      // Sinkronkan foto profil kartu students dengan avatar aside: setelah
-      // user mengganti/menghapus foto profilnya, kartunya ikut berubah.
-      function syncStudentsAvatar(user) {
+      // Foto profil DAN bio kartu students ikut berubah begitu user
+      // menyimpan/menghapus miliknya sendiri, supaya daftar di halaman
+      // yang sama tidak tertinggal sampai dimuat ulang.
+      function syncStudentsUser(user) {
         if (!user || !studentsCache || !studentsCache.length) return;
         const match = studentsCache.find(function (s) { return String(s.id) === String(user.id); });
         if (!match) return;
-        match.avatar = user.avatar || null;
+        let changed = false;
+        if (user.avatar !== undefined && match.avatar !== (user.avatar || null)) {
+          match.avatar = user.avatar || null;
+          changed = true;
+        }
+        if (user.bio !== undefined && (match.bio || '') !== (user.bio || '')) {
+          match.bio = user.bio || null;
+          changed = true;
+        }
+        if (!changed) return;
         if (document.getElementById('students-view').style.display !== 'none') {
           const listEl = document.getElementById('students-list');
           const scrollTop = listEl.scrollTop;
@@ -2848,6 +2894,9 @@
           listEl.scrollTop = scrollTop;
         }
       }
+      // saveBio() ada di blok script pertama, jadi fungsi ini perlu
+      // dijembatankan lewat window.
+      window.syncStudentsUser = syncStudentsUser;
       function bindViewerBack() {
         const backBtn = document.getElementById('krs-viewer-back');
         if (backBtn && !backBtn.dataset.bound) {
@@ -2880,8 +2929,10 @@
           return;
         }
         const admin = isAdminUser();
+        // Bio, nama, dan NIM berasal dari input pengguna, jadi wajib
+        // di-escape sebelum masuk innerHTML (stored XSS).
         const cekBtn = function (u) {
-          return '<button type="button" class="student-card-krs" data-nim="' + (u.nim || '') + '" data-name="' + (u.full_name || u.username) + '"' + (admin ? '' : ' hidden') + '>Cek KRS</button>';
+          return '<button type="button" class="student-card-krs" data-nim="' + escapeHtml(u.nim || '') + '" data-name="' + escapeHtml(u.full_name || u.username) + '"' + (admin ? '' : ' hidden') + '>Cek KRS</button>';
         };
         const bioText = function (u) {
           return (u.bio && u.bio.trim()) ? u.bio.trim() : '';
@@ -2889,10 +2940,10 @@
         const cardHtml = function (u, i) {
           return '<div class="stu-card">' +
             '<img class="stu-card-avatar" src="' + studentAvatar(u, i) + '" alt="foto">' +
-            '<span class="stu-card-name">' + (u.full_name || u.username) + '</span>' +
-            '<span class="stu-card-nim">' + (u.nim || '-') + '</span>' +
+            '<span class="stu-card-name">' + escapeHtml(u.full_name || u.username) + '</span>' +
+            '<span class="stu-card-nim">' + escapeHtml(u.nim || '-') + '</span>' +
             '<span class="stu-card-gender">' + genderLabel(u.gender) + '</span>' +
-            '<p class="stu-card-bio">' + (bioText(u) || 'Tidak ada bio.') + '</p>' +
+            '<p class="stu-card-bio">' + escapeHtml(bioText(u) || 'Tidak ada bio.') + '</p>' +
             cekBtn(u) +
             '</div>';
         };
@@ -2907,12 +2958,12 @@
             '</tr></thead><tbody>' +
             users.map((u, i) =>
               '<tr>' +
-              '<td class="s-nim">' + (u.nim || '-') + '</td>' +
-              '<td class="s-name">' + (u.full_name || u.username) + '</td>' +
+              '<td class="s-nim">' + escapeHtml(u.nim || '-') + '</td>' +
+              '<td class="s-name">' + escapeHtml(u.full_name || u.username) + '</td>' +
               '<td>' + genderLabel(u.gender) + '</td>' +
               '<td><span class="s-active ' + (u.is_active ? 'on' : 'off') + '">' + (u.is_active ? 'Aktif' : 'Nonaktif') + '</span></td>' +
-              '<td>' + (u.role || '-') + '</td>' +
-              '<td class="s-bio">' + (bioText(u) || '<span class="s-bio-empty">Tidak ada bio.</span>') + '</td>' +
+              '<td>' + escapeHtml(u.role || '-') + '</td>' +
+              '<td class="s-bio">' + (bioText(u) ? escapeHtml(bioText(u)) : '<span class="s-bio-empty">Tidak ada bio.</span>') + '</td>' +
               '</tr>'
             ).join('') +
             '</tbody></table>' +
@@ -2922,6 +2973,7 @@
         syncStudentsModeBtn();
         schedulePageScrollLocks();
       }
+      window.setInterval(pollStudents, STUDENTS_POLL_MS);
       if (studentsModeBtn && !studentsModeBtn.dataset.bound) {
         studentsModeBtn.dataset.bound = '1';
         studentsModeBtn.addEventListener('click', function () {
@@ -3145,7 +3197,7 @@
             current.avatar = d.user.avatar;
             sessionStorage.setItem('auth_user', JSON.stringify(current));
             renderProfile(current);
-            syncStudentsAvatar(current);
+            syncStudentsUser(current);
             closeCropModal();
           })
           .catch((e) => { window.alert(e.message || 'Gagal menyimpan foto profil.'); })
@@ -3171,7 +3223,7 @@
               current.avatar = d.user.avatar;
               sessionStorage.setItem('auth_user', JSON.stringify(current));
               renderProfile(current);
-              syncStudentsAvatar(current);
+              syncStudentsUser(current);
             })
             .catch((e) => window.alert(e.message || 'Gagal menghapus foto profil.'));
         });
