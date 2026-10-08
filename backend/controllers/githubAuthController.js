@@ -3,16 +3,15 @@
 // Berbeda dengan Google yang memakai ID token, GitHub tidak punya
 // ID token: yang ditukar tetap "authorization code", dan penukarannya
 // MEMBUTUHKAN client secret. Karena itu tombol di frontend cukup
-// Redirect sederhana ke /start, tanpa popup.
+// redirect ke /start, tanpa popup.
 //
 // Alur:
 //   /start   -> simpan state acak di cookie, arahkan ke GitHub
 //   /callback-> cek state, tukar code jadi access token, ambil profil,
 //               pakai/daftarkan akun, terbitkan sesi, arahkan ke frontend
+//
+// Bagian bersama dengan Facebook ada di utils/oauthWebFlow.js.
 // ===================================================
-
-const crypto = require('crypto');
-const https = require('https');
 
 const asyncHandler = require('../middlewares/asyncHandler');
 const User = require('../models/User');
@@ -21,11 +20,16 @@ const { generateAccountToken } = require('../utils/accountToken');
 const { applyNimFromEmail } = require('../utils/nimFromEmail');
 const { publicOrigin } = require('../utils/publicOrigin');
 const { saveGitHubPicture } = require('../utils/googleAvatar');
+const {
+  STATE_MAX_AGE_MS, randomState, readCookie, stateCookieHeader,
+  frontendRedirect, backToLogin, postForm, requestJson,
+  usernameFromName, uniqueUsername
+} = require('../utils/oauthWebFlow');
 const { env } = require('../config/env');
 const authController = require('./authController');
 
 const STATE_COOKIE = 'github_oauth_state';
-const STATE_MAX_AGE_MS = 10 * 60 * 1000;
+const COOKIE_PATH = '/api/auth/github';
 
 function github() {
   const { clientId, clientSecret } = env.github;
@@ -37,148 +41,25 @@ function github() {
   return { clientId, clientSecret };
 }
 
-// ponytail: hanya cookie milik flow ini sendiri yang dibaca, jadi tidak
-// perlu menambah dependensi cookie-parser untuk satu nilai.
-function readStateCookie(req) {
-  const hit = String(req.headers.cookie || '')
-    .split(';')
-    .map((s) => s.trim())
-    .find((s) => s.startsWith(`${STATE_COOKIE}=`));
-
-  return hit ? decodeURIComponent(hit.slice(STATE_COOKIE.length + 1)) : '';
-}
-
 function callbackUrl(req) {
   return env.github.callbackUrl
     || (publicOrigin(req) + '/api/auth/github/callback');
 }
 
-// Panggilan HTTPS tanpa pustaka luar: satu file saja, tanpa dependensi.
-function postForm(url, form) {
-  return new Promise((resolve, reject) => {
-    const target = new URL(url);
-    const body = new URLSearchParams(form).toString();
-
-    const req = https.request(
-      {
-        hostname: target.hostname,
-        path: target.pathname + target.search,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Accept: 'application/json',
-          'User-Agent': 'Web-Kelas',
-          'Content-Length': Buffer.byteLength(body)
-        },
-        timeout: 10000
-      },
-      (res) => {
-        let raw = '';
-        res.on('data', (chunk) => { raw += chunk; });
-        res.on('end', () => {
-          let parsed;
-          try { parsed = JSON.parse(raw); } catch (error) { reject(new Error('Balasan GitHub tidak bisa dibaca')); return; }
-          // GitHub balas 200 walau gagal; error-nya ada di dalam body.
-          resolve(parsed);
-        });
-      }
-    );
-
-    req.on('timeout', () => { req.destroy(); reject(new Error('GitHub tidak menjawab')); });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
-}
-
+// GitHub menaruh token di header Authorization, jadi tidak sama dengan
+// Graph API yang memakai query string.
 function getJson(url, accessToken) {
-  return new Promise((resolve, reject) => {
-    const target = new URL(url);
-    const req = https.request(
-      {
-        hostname: target.hostname,
-        path: target.pathname + target.search,
-        method: 'GET',
-        headers: {
-          Authorization: 'Bearer ' + accessToken,
-          Accept: 'application/vnd.github+json',
-          'User-Agent': 'Web-Kelas',
-          'X-GitHub-Api-Version': '2022-11-28'
-        },
-        timeout: 10000
-      },
-      (res) => {
-        let raw = '';
-        res.on('data', (chunk) => { raw += chunk; });
-        res.on('end', () => {
-          let parsed;
-          try { parsed = JSON.parse(raw); } catch (error) { reject(new Error('Balasan GitHub tidak bisa dibaca')); return; }
-          // Token kedaluwarsa/diubah/userannya dicabut -> 401. Tanpa cek ini
-          // errornya Reading profile menyesatkan jadi "tidak punya email".
-          if (res.statusCode >= 400) {
-            reject(new Error(`GitHub menolak permintaan profil (${res.statusCode})`));
-            return;
-          }
-          resolve(parsed);
-        });
-      }
-    );
-
-    req.on('timeout', () => { req.destroy(); reject(new Error('GitHub tidak menjawab')); });
-    req.on('error', reject);
-    req.end();
-  });
-}
-
-function cookieHeader(req, name, value, maxAgeMs) {
-  const parts = [
-    `${name}=${value}`,
-    'Path=/api/auth/github',
-    'HttpOnly',
-    'SameSite=Lax',
-    `Max-Age=${Math.round(maxAgeMs / 1000)}`
-  ];
-
-  if (publicOrigin(req).startsWith('https://')) parts.push('Secure');
-
-  return parts.join('; ');
-}
-
-function frontendRedirect(req, res) {
-  return `${publicOrigin(req)}/sso-callback.html`;
-}
-
-function backToLogin(req, res, reason) {
-  res.redirect(`${publicOrigin(req)}/index.html?${new URLSearchParams({ github: reason })}`);
-}
-
-// Samakan nama GitHub dengan aturan username di aplikasi.
-function usernameFromName(name, login, email) {
-  const cleaned = String(name || '')
-    .replace(/[^a-zA-Z0-9._ -]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 50);
-
-  return cleaned || String(login || email || '').slice(0, 50);
-}
-
-async function uniqueUsername(base) {
-  let candidate = base;
-  let suffix = 1;
-
-  while (await User.isUsernameTaken(candidate)) {
-    suffix += 1;
-    const tail = ' ' + suffix;
-    candidate = base.slice(0, 50 - tail.length) + tail;
-  }
-
-  return candidate;
+  return requestJson(url, {
+    headers: {
+      Authorization: 'Bearer ' + accessToken,
+      'X-GitHub-Api-Version': '2022-11-28'
+    }
+  }, 'GitHub');
 }
 
 // Email utama GitHub bisa saja null (kalau privacy email), jadi cari yang
 // sudah diverifikasi lebih dulu.
-function pickEmail(profile, emails) {
+function pickEmail(emails) {
   const list = Array.isArray(emails) ? emails : [];
   const primary = list.find((item) => item && item.primary && item.verified);
   const anyVerified = list.find((item) => item && item.verified);
@@ -204,7 +85,7 @@ exports.config = (req, res) => {
 
 exports.start = asyncHandler(async (req, res) => {
   const { clientId } = github();
-  const state = crypto.randomBytes(16).toString('hex');
+  const state = randomState();
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -214,7 +95,7 @@ exports.start = asyncHandler(async (req, res) => {
     allow_signup: 'true'
   });
 
-  res.setHeader('Set-Cookie', cookieHeader(req, STATE_COOKIE, state, STATE_MAX_AGE_MS));
+  res.setHeader('Set-Cookie', stateCookieHeader(req, COOKIE_PATH, STATE_COOKIE, state, STATE_MAX_AGE_MS));
   res.redirect(`https://github.com/login/oauth/authorize?${params}`);
 });
 
@@ -226,15 +107,15 @@ exports.callback = asyncHandler(async (req, res) => {
   const { clientId, clientSecret } = github();
 
   if (req.query.error) {
-    backToLogin(req, res, String(req.query.error_description || req.query.error));
+    backToLogin(req, res, 'github', String(req.query.error_description || req.query.error));
     return;
   }
 
   const code = String(req.query.code || '');
   const state = String(req.query.state || '');
-  const expected = readStateCookie(req);
+  const expected = readCookie(req, STATE_COOKIE);
 
-  res.setHeader('Set-Cookie', cookieHeader(req, STATE_COOKIE, '', 0));
+  res.setHeader('Set-Cookie', stateCookieHeader(req, COOKIE_PATH, STATE_COOKIE, '', 0));
 
   if (!code || !state || !expected || state !== expected) {
     throw new AppError(400, 'Permintaan login GitHub tidak valid');
@@ -262,7 +143,7 @@ exports.callback = asyncHandler(async (req, res) => {
   const emails = await getJson('https://api.github.com/user/emails', accessToken)
     .catch(() => []);
 
-  const email = pickEmail(profile, emails);
+  const email = pickEmail(emails);
   const fullName = String(profile.name || '').trim();
 
   if (!email) {
@@ -286,7 +167,7 @@ exports.callback = asyncHandler(async (req, res) => {
 
   if (!user) {
     const userId = await User.create({
-      username: await uniqueUsername(usernameFromName(fullName, profile.login, email)),
+      username: await uniqueUsername(User, usernameFromName(fullName, profile.login, email)),
       email,
       passwordHash: null,
       accountToken: generateAccountToken(),
@@ -320,5 +201,5 @@ exports.callback = asyncHandler(async (req, res) => {
     welcome: isNewAccount ? '1' : ''
   });
 
-  res.redirect(`${frontendRedirect(req, res)}?${params}`);
+  res.redirect(`${frontendRedirect(req)}?${params}`);
 });

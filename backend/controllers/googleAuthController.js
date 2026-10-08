@@ -14,36 +14,11 @@ const User = require('../models/User');
 const { AppError } = require('../utils/errors');
 const { generateAccountToken } = require('../utils/accountToken');
 const { isEnabled, verifyIdToken } = require('../utils/googleAuth');
-const { applyNimFromEmail } = require('../utils/nimFromEmail');
+const { applyNimFromEmail, nimFromEmail } = require('../utils/nimFromEmail');
+const { usernameFromName, uniqueUsername } = require('../utils/oauthWebFlow');
 const env = require('../config/env').env;
 const authController = require('./authController');
 const { saveGooglePicture } = require('../utils/googleAvatar');
-
-// Samakan nama dari Google dengan aturan username di aplikasi
-// (huruf, angka, titik, garis bawah, strip; spasi boleh).
-function usernameFromName(name, email) {
-  const cleaned = String(name || '')
-    .replace(/[^a-zA-Z0-9._ -]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 50);
-
-  return cleaned || String(email || '').split('@')[0].slice(0, 50);
-}
-
-// Kalau nama sudah dipakai akun lain, tambahkan angka agar unik.
-async function uniqueUsername(base) {
-  let candidate = base;
-  let suffix = 1;
-
-  while (await User.isUsernameTaken(candidate)) {
-    suffix += 1;
-    const tail = ' ' + suffix;
-    candidate = base.slice(0, 50 - tail.length) + tail;
-  }
-
-  return candidate;
-}
 
 // ===================================================
 // GET /api/auth/google/config
@@ -93,7 +68,7 @@ exports.login = asyncHandler(async (req, res) => {
   if (env.google.allowedDomain) {
     const domain = email.split('@')[1] || '';
     if (domain.toLowerCase() !== env.google.allowedDomain.toLowerCase()) {
-      throw new AppError(403, `Hanya email @${env.google.allowedDomain} yang bisa masuk`);
+      throw new AppError(403, 'Login gagal. Gunakan Email Unesa!');
     }
   }
 
@@ -105,6 +80,14 @@ exports.login = asyncHandler(async (req, res) => {
     // lalu tautkan akun itu dengan identitas Google-nya.
     user = await User.findByEmail(email);
 
+    // Akun Web Kelas boleh punya alamat email yang berbeda dari akun Google-nya,
+    // tapi NIM-nya sama (mis. 25051204082@mhs.unesa.ac.id). Cari lewat NIM
+    // supaya tidak muncul akun kembar dan role yang sudah ada ikut terbawa.
+    if (!user) {
+      const nim = nimFromEmail(email);
+      if (nim) user = await User.findByNim(nim);
+    }
+
     if (user) {
       await User.linkGoogleId(user.id, googleId);
     }
@@ -112,7 +95,7 @@ exports.login = asyncHandler(async (req, res) => {
 
   if (!user) {
     const userId = await User.create({
-      username: await uniqueUsername(usernameFromName(fullName, email)),
+      username: await uniqueUsername(User, usernameFromName(fullName, '', email)),
       email,
       passwordHash: null,
       accountToken: generateAccountToken(),

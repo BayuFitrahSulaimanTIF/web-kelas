@@ -49,6 +49,18 @@ const env = {
     // Dikosongkan = diturunkan dari FRONTEND_BASE_URL.
     callbackUrl: process.env.GITHUB_CALLBACK_URL || ''
   },
+  facebook: {
+    // Facebook Login exchanging authorization code -> access token
+    // di graph.facebook.com. Wajib app secret, sama seperti GitHub.
+    appId: process.env.FACEBOOK_APP_ID || '',
+    appSecret: process.env.FACEBOOK_APP_SECRET || '',
+    // Batasi login hanya ke domain kampus satu. Kosong = semua domain
+    // Facebook diterima (hanya untuk pengembangan).
+    allowedDomain: process.env.FACEBOOK_ALLOWED_DOMAIN || '',
+    // Dikosongkan = diturunkan dari FRONTEND_BASE_URL.
+    callbackUrl: process.env.FACEBOOK_CALLBACK_URL || '',
+    graphVersion: process.env.FACEBOOK_GRAPH_VERSION || 'v21.0'
+  },
   security: {
     loginMaxAttempts: Number(process.env.LOGIN_MAX_ATTEMPTS || 5),
     loginLockoutMinutes: Number(process.env.LOGIN_LOCKOUT_MINUTES || 5),
@@ -94,8 +106,20 @@ function validateEnv() {
     logger.warn('GOOGLE_CLIENT_ID belum diisi — tombol "Masuk dengan Google" disembunyikan.');
   }
 
+  // Kosong berarti login Google diterima dari domain mana pun. Kalau tombolnya
+  // hidup, itu pembatasan yang tidak disengaja — beri tahu saat start.
+  if (env.google.clientId && !env.google.allowedDomain) {
+    logger.warn('GOOGLE_ALLOWED_DOMAIN kosong — login Google menerima domain apa pun. Setel ke mhs.unesa.ac.id untuk membatasi.');
+  }
+
   if (!env.github.clientId || !env.github.clientSecret) {
     logger.warn('GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET belum diisi — tombol "Masuk dengan GitHub" disembunyikan.');
+  }
+
+  if (!env.facebook.appId || !env.facebook.appSecret) {
+    logger.warn('FACEBOOK_APP_ID / FACEBOOK_APP_SECRET belum diisi — tombol "Masuk dengan Facebook" disembunyikan.');
+  } else if (!env.facebook.allowedDomain) {
+    logger.warn('FACEBOOK_ALLOWED_DOMAIN kosong — login Facebook menerima domain apa pun.');
   }
 
   if (env.argon2.memoryKib < 19456) {
