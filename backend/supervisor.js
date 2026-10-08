@@ -121,12 +121,29 @@ function findNgrok() {
 }
 
 // ---------- start proses child secara hidden ----------
+// ponytail: server.js di-spawn detached, jadi supervisor tidak memegang
+// child-nya dan hanyasequently tahu dia mati lewat health check tiap
+// CHECK_MS. Akibatnya ada jendela ~5 detik+ port 3000 kosong dan tunnel
+// balas ERR_NGROK_8012. Listen 'exit' supaya langsung respawn: downtime
+// tinggal waktu boot node.
+const RESPAWN_DELAY_MS = 700;
+let serverRestartAt = 0;
+
 function startServer() {
+  // Cegah spawn bertumpuk ketika exit dan tick kebetulan jalan bersamaan.
+  if (Date.now() - serverRestartAt < RESPAWN_DELAY_MS) return;
+  serverRestartAt = Date.now();
+
   const child = spawn(process.execPath, ['server.js'], {
     cwd: DIR, detached: true, stdio: 'ignore', windowsHide: true
   });
   child.unref();
   log('server.js start pid=' + child.pid);
+
+  child.on('exit', (code, signal) => {
+    log('server.js exit code=' + code + ' signal=' + signal + ' -> respawn');
+    setTimeout(startServer, RESPAWN_DELAY_MS);
+  });
 }
 
 function startNgrok() {
