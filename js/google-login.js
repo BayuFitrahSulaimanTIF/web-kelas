@@ -237,7 +237,7 @@
     if (!idToken) return;
 
     state.isSubmitting = true;
-    showMessage('Memverifikasi akun Google...', 'success');
+    showMessage('Memverifikasi akun Google...', 'info');
 
     // Jaring pengaman: kalau nanti ternyata tidak pindah halaman, beri
     // tahu apa yang terjadi daripada diam saja.
@@ -259,7 +259,6 @@
         ? 'Akun dibuat dari Google, masuk...'
         : 'Login berhasil, mengalihkan...';
 
-      showMessage(note, 'success');
       UI.showToast(note, 'success');
 
       window.setTimeout(() => {
@@ -273,7 +272,6 @@
         ? error.message
         : error.message || 'Login dengan Google gagal';
 
-      showMessage(message);
       UI.showToast(message, 'error');
     } finally {
       state.isSubmitting = false;
