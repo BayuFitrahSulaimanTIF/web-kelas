@@ -26,12 +26,11 @@ exports.listStudents = asyncHandler(async (req, res) => {
   const [rows] = await db.query(
     `SELECT id, username,
             COALESCE(NULLIF(nim, ''), CASE WHEN username REGEXP '^[0-9]+$' THEN username END) AS nim,
-            full_name, gender, role, is_active, avatar, bio, last_seen_at, is_away,
+            full_name, gender, role, is_active, avatar, bio, last_seen_at,
             -- presence hanya untuk tampilan; is_active tetap ermisi login.
             CASE
               WHEN last_seen_at IS NULL THEN 'offline'
               WHEN last_seen_at < DATE_SUB(NOW(), INTERVAL ? SECOND) THEN 'offline'
-              WHEN is_away = 1 THEN 'away'
               ELSE 'online'
             END AS presence
      FROM users
@@ -42,8 +41,8 @@ exports.listStudents = asyncHandler(async (req, res) => {
   res.json({ users: rows });
 });
 
-// Melaporkan bahwa pengguna masih membuka Web Kelas (atau sedang away).
+// Melaporkan bahwa pengguna masih membuka Web Kelas.
 exports.touchPresence = asyncHandler(async (req, res) => {
-  await User.touchPresence(req.user.id, req.body && req.body.away);
+  await User.touchPresence(req.user.id);
   res.json({ ok: true });
 });

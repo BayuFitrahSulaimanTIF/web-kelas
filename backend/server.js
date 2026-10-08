@@ -47,8 +47,9 @@ validateEnv();
         if(mc[0].n===0) await p.query("ALTER TABLE users ADD COLUMN managed_course VARCHAR(60) DEFAULT NULL AFTER role");
         const [ls]=await p.query("SELECT COUNT(*) n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='last_seen_at'");
         if(ls[0].n===0) await p.query("ALTER TABLE users ADD COLUMN last_seen_at DATETIME DEFAULT NULL AFTER is_active");
+        // is_away dulu dipakai untuk status "Away"; sekarang cukup Online/Offline.
         const [aw]=await p.query("SELECT COUNT(*) n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='is_away'");
-        if(aw[0].n===0) await p.query("ALTER TABLE users ADD COLUMN is_away BOOLEAN NOT NULL DEFAULT FALSE AFTER last_seen_at");
+        if(aw[0].n>0) await p.query("ALTER TABLE users DROP COLUMN is_away");
         await p.query("UPDATE users SET nim='230101001' WHERE username='student1' AND nim IS NULL");
         await p.query("UPDATE users SET nim='230101002' WHERE username='student2' AND nim IS NULL");
         await p.query("UPDATE users SET nim='230101003' WHERE username='student3' AND nim IS NULL");

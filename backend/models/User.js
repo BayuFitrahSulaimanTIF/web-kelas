@@ -13,7 +13,7 @@
 
 const { db } = require('../config/database');
 
-const USER_COLUMNS = 'id, username, email, full_name, google_id, nim, role, managed_course, is_active, last_seen_at, is_away, failed_login_attempts, locked_until, last_login_at, birth_date, gender, bio, avatar, created_at, updated_at';
+const USER_COLUMNS = 'id, username, email, full_name, google_id, nim, role, managed_course, is_active, last_seen_at, failed_login_attempts, locked_until, last_login_at, birth_date, gender, bio, avatar, created_at, updated_at';
 // Kolom keamanan hanya diambil di jalur yang membutuhkannya
 const AUTH_COLUMNS = `${USER_COLUMNS}, password_hash`;
 
@@ -128,10 +128,11 @@ const User = {
 
   // Kehadiran di aplikasi. Sengaja TIDAK menyentuh is_active: kolom itu
   // milik admin (menonaktifkan akun) dan dipakai untuk memblokir login.
-  async touchPresence(id, away) {
+  // Tanpa laporan selama PRESCENCE_TIMEOUT_S detik, dianggap offline.
+  async touchPresence(id) {
     await db.execute(
-      'UPDATE users SET last_seen_at = NOW(), is_away = ? WHERE id = ?',
-      [away ? 1 : 0, id]
+      'UPDATE users SET last_seen_at = NOW() WHERE id = ?',
+      [id]
     );
   },
 

@@ -1489,16 +1489,8 @@ font-family: 'VT323', 'Courier New', monospace;
   white-space: nowrap;
 }
 .students-table .s-bio-empty { color: #c0c4cc; font-style: italic; }
-.s-active {
-  display: inline-block;
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  line-height: 1.2;
-}
-.s-active.on { background: #e7f5ea; color: #1d7a3d; }
-.s-active.off { background: #fdeaea; color: #c0392b; }
-/* Status kehadiran, terpisah dari izin login (Aktif/Nonaktif). */
+/* Status kehadiran (Online/Offline). Yang menentukan izin login tetap
+   kolom is_active di server, bukan badge ini. */
 .s-presence {
   display: inline-block;
   padding: 0.1rem 0.5rem;
@@ -1509,7 +1501,6 @@ font-family: 'VT323', 'Courier New', monospace;
 }
 .s-presence.online { background: #e7f5ea; color: #1d7a3d; }
 .s-presence.online::before { content: '\25CF'; margin-right: 0.25rem; font-size: 0.6em; vertical-align: 0.15em; }
-.s-presence.away { background: #fff4e0; color: #a35b00; }
 .s-presence.offline { background: #f0f1f4; color: #7a808c; }
 .stu-card .s-presence { align-self: center; margin: 0.15rem 0; }
 .stu-grid {

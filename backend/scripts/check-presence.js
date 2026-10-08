@@ -20,13 +20,18 @@ console.log('-- tidak boleh menyentuh is_active --');
 check('is_active tidak ditulis saat heartbeat',
   !/UPDATE users SET[^;]*is_active\s*=/.test(model.replace(/activateByUsername[\s\S]*?\n\s*\},/, '')));
 check('presence pakai kolom terpisah',
-  /UPDATE users SET last_seen_at = NOW\(\), is_away = \? WHERE id = \?/.test(model));
+  /UPDATE users SET last_seen_at = NOW\(\) WHERE id = \?/.test(model));
 check('endpoint presence tidak menulis is_active',
   !/is_active/.test(ctrl.split('touchPresence')[1] || ''));
 check('kolom baru ada di schema',
-  /last_seen_at DATETIME DEFAULT NULL/.test(schema) && /is_away BOOLEAN NOT NULL DEFAULT FALSE/.test(schema));
+  /last_seen_at DATETIME DEFAULT NULL/.test(schema));
 check('migrasi idempoten ada di server.js',
-  /COLUMN_NAME='last_seen_at'/.test(server) && /COLUMN_NAME='is_away'/.test(server));
+  /COLUMN_NAME='last_seen_at'/.test(server));
+check('migrasi buang is_away ada di server.js',
+  /DROP COLUMN is_away/.test(server));
+
+const offlineAfter = Number(ctrl.match(/PRESENCE_OFFLINE_AFTER_S = (\d+)/)[1]);
+const heartbeatMs = Number(dash.match(/PRESENCE_MS = (\d+)/)[1]);
 
 console.log('');
 console.log('-- routing backend --');
@@ -35,23 +40,30 @@ check('POST /presence terdaftar', /router\.post\('\/presence', usersController\.
 console.log('');
 console.log('-- perhitungan status --');
 check('offline setelah ambang waktu', /DATE_SUB\(NOW\(\), INTERVAL \? SECOND\) THEN 'offline'/.test(ctrl));
-check('away dibedakan dari offline', /WHEN is_away = 1 THEN 'away'/.test(ctrl));
-const offlineAfter = Number(ctrl.match(/PRESENCE_OFFLINE_AFTER_S = (\d+)/)[1]);
-const heartbeatMs = Number(dash.match(/PRESENCE_MS = (\d+)/)[1]);
-check('ambang offline > interval heartbeat',
+check('ambang > interval heartbeat',
   offlineAfter * 1000 > heartbeatMs, offlineAfter + 'd > ' + heartbeatMs + 'ms');
 check('NULL last_seen_at = offline', /WHEN last_seen_at IS NULL THEN 'offline'/.test(ctrl));
+console.log('');
+console.log('-- hanya dua status --');
+check('hanya online/offline di SQL', !/THEN 'away'/.test(ctrl) && !/is_away/.test(ctrl));
+check('hanya online/offline di label frontend',
+  !/away/.test(dash.split('PRESENCE_LABEL = ')[1].split('\n')[0]));
+check('kolom is_away dibuang dari schema', !/is_away/.test(schema));
+check('kolom is_away dibuang dari model', !/is_away/.test(model));
+check('badge Aktif/Nonaktif dihapus dari daftar',
+  !/class="s-active/.test(dash) && !/'Aktif' : 'Nonaktif'/.test(dash));
+check('CSS s-active dihapus', !/\.s-active[\s{]/.test(css));
+check('CSS away dihapus', !/\.s-presence\.away/.test(css));
+check('header kolom diganti Status', /<th>Status<\/th>/.test(dash));
+check('header Keaktifan hilang', !/Keaktifan/.test(dash));
 
 console.log('');
 console.log('-- frontend --');
-check('heartbeat dijadwalkan', /presenceTimer = window\.setInterval\(function[\s\S]{0,300}PRESENCE_MS\)/.test(dash));
-check('visibilitychange mengirim away', /addEventListener\('visibilitychange'/.test(dash));
-check('pagehide mengirim keepalive',
-  /addEventListener\('pagehide', function \(\) \{\s*reportPresence\(true, true\)/.test(dash));
-check('fetchpresence memakai keepalive', /keepalive: !!keepalive/.test(dash));
-check('keepalive hanya saat menutup', /reportPresence\(true, true\)/.test(dash));
+check('heartbeat dijadwalkan', /presenceTimer = window\.setInterval\(reportPresence, PRESENCE_MS\)/.test(dash));
+check('visibilitychange mengirim laporan', /addEventListener\('visibilitychange', reportPresence\)/.test(dash));
 check('fingerprint ikut presence', /u\.presence \|\| ''/.test(dash));
-check('badge online/away/offline', /\.s-presence\.online/.test(css) && /\.s-presence\.away/.test(css) && /\.s-presence\.offline/.test(css));
+check('badge online/offline ada di CSS',
+  /\.s-presence\.online/.test(css) && /\.s-presence\.offline/.test(css));
 check('tabel menampilkan badge', /presenceBadge\(u\)/.test(dash));
 check('kartu menampilkan badge', /presenceBadge\(u\)/.test(dash));
 
