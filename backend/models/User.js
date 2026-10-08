@@ -13,7 +13,7 @@
 
 const { db } = require('../config/database');
 
-const USER_COLUMNS = 'id, username, email, full_name, google_id, role, managed_course, is_active, failed_login_attempts, locked_until, last_login_at, birth_date, gender, bio, avatar, created_at, updated_at';
+const USER_COLUMNS = 'id, username, email, full_name, google_id, nim, role, managed_course, is_active, last_seen_at, is_away, failed_login_attempts, locked_until, last_login_at, birth_date, gender, bio, avatar, created_at, updated_at';
 // Kolom keamanan hanya diambil di jalur yang membutuhkannya
 const AUTH_COLUMNS = `${USER_COLUMNS}, password_hash`;
 
@@ -46,6 +46,17 @@ const User = {
     const [rows] = await db.execute(
       `SELECT ${AUTH_COLUMNS} FROM users WHERE username = ? OR email = ? LIMIT 1`,
       [value, value]
+    );
+    return rows[0] || null;
+  },
+
+  // Akun Web Kelas juga dicari lewat NIM: alamat email di akun Google bisa
+  // berbeda tulisannya, sedangkan NIM-nya sama. Pakai ini supaya login
+  // Google tidak membuat akun kembar dan role yang sudah ada ikut terbawa.
+  async findByNim(nim) {
+    const [rows] = await db.execute(
+      `SELECT ${USER_COLUMNS} FROM users WHERE nim = ? LIMIT 1`,
+      [nim]
     );
     return rows[0] || null;
   },
@@ -112,6 +123,15 @@ const User = {
     await db.execute(
       'UPDATE users SET is_active = 1 WHERE username = ?',
       [username]
+    );
+  },
+
+  // Kehadiran di aplikasi. Sengaja TIDAK menyentuh is_active: kolom itu
+  // milik admin (menonaktifkan akun) dan dipakai untuk memblokir login.
+  async touchPresence(id, away) {
+    await db.execute(
+      'UPDATE users SET last_seen_at = NOW(), is_away = ? WHERE id = ?',
+      [away ? 1 : 0, id]
     );
   },
 

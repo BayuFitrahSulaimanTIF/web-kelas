@@ -8,5 +8,6 @@ router.use(authenticate);
 
 router.get('/mentions', usersController.listMentions);
 router.get('/students', usersController.listStudents);
+router.post('/presence', usersController.touchPresence);
 
 module.exports = router;

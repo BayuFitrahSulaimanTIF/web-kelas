@@ -39,6 +39,11 @@ CREATE TABLE IF NOT EXISTS users (
   role ENUM('admin', 'dosen', 'mahasiswa', 'student') NOT NULL DEFAULT 'student',
   managed_course VARCHAR(60) DEFAULT NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  -- Kehadiran di aplikasi (bukan penonaktifan akun).
+  -- is_active tetap milik admin: menyalin status online ke sana akan
+  -- membuka kembali akun yang sengaja dinonaktifkan.
+  last_seen_at DATETIME DEFAULT NULL,
+  is_away BOOLEAN NOT NULL DEFAULT FALSE,
   failed_login_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
   locked_until DATETIME DEFAULT NULL,
   last_login_at DATETIME DEFAULT NULL,

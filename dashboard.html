@@ -2815,9 +2815,44 @@
       // otomatis. Fingerprint dipakai supaya render hanya jalan kalau
       // datanya memang beda.
       const STUDENTS_POLL_MS = 15000;
+      // Kehadiran dilaporkan ke server, bukan lewat cache lokal: daftar
+      // mahasiswa dibaca orang lain, jadi status harus benar-benar ada di DB.
+      const PRESENCE_MS = 20000;
+      let presenceTimer = null;
+      function reportPresence(away, keepalive) {
+        if (!getToken()) return;
+        try {
+          fetch(API_ORIGIN + '/api/users/presence', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+            body: JSON.stringify({ away: !!away }),
+            // keepalive mengizinkan request ini tetap terkirim saat tab ditutup.
+            keepalive: !!keepalive
+          }).catch(function () {});
+        } catch (e) { /* gagal diam-diam: status akan kedaluwarsa sendiri */ }
+      }
+      function startPresence() {
+        if (presenceTimer) return;
+        reportPresence(document.hidden, false);
+        presenceTimer = window.setInterval(function () {
+          // Jangan tandai online kalau tabnya tidak terlihat; kalau tidak,
+          // heartbeat dari tab yang tersembunyi akan fought over flag away.
+          reportPresence(document.hidden, false);
+        }, PRESENCE_MS);
+        // Ganti tab / minimize -> langsung away tanpa menunggu heartbeat.
+        document.addEventListener('visibilitychange', function () {
+          reportPresence(document.hidden, false);
+        });
+        // Menutup tab / pindah halaman: kirim sekali saja. Kalau browser
+        ///crash, tidak ada yang terkirim dan server menandainya offline
+        // sendiri setelah 45 detik.
+        window.addEventListener('pagehide', function () {
+          reportPresence(true, true);
+        });
+      }
       function studentsFingerprint(users) {
         return (users || []).map(function (u) {
-          return [u.id, u.avatar || '', u.bio || '', u.full_name || '', u.is_active ? 1 : 0].join('|');
+          return [u.id, u.avatar || '', u.bio || '', u.full_name || '', u.is_active ? 1 : 0, u.presence || ''].join('|');
         }).join('\n');
       }
       function fetchStudents() {
@@ -2937,12 +2972,20 @@
         const bioText = function (u) {
           return (u.bio && u.bio.trim()) ? u.bio.trim() : '';
         };
+        // Status kehadiran. Sengaja terpisah dari "Aktif/Nonaktif" yang
+        // berarti izin login oleh admin.
+        const PRESENCE_LABEL = { online: 'Online', away: 'Away', offline: 'Offline' };
+        const presenceBadge = function (u) {
+          const p = PRESENCE_LABEL[u.presence] ? u.presence : 'offline';
+          return '<span class="s-presence ' + p + '">' + PRESENCE_LABEL[p] + '</span>';
+        };
         const cardHtml = function (u, i) {
           return '<div class="stu-card">' +
             '<img class="stu-card-avatar" src="' + studentAvatar(u, i) + '" alt="foto">' +
             '<span class="stu-card-name">' + escapeHtml(u.full_name || u.username) + '</span>' +
             '<span class="stu-card-nim">' + escapeHtml(u.nim || '-') + '</span>' +
             '<span class="stu-card-gender">' + genderLabel(u.gender) + '</span>' +
+            presenceBadge(u) +
             '<p class="stu-card-bio">' + escapeHtml(bioText(u) || 'Tidak ada bio.') + '</p>' +
             cekBtn(u) +
             '</div>';
@@ -2961,7 +3004,7 @@
               '<td class="s-nim">' + escapeHtml(u.nim || '-') + '</td>' +
               '<td class="s-name">' + escapeHtml(u.full_name || u.username) + '</td>' +
               '<td>' + genderLabel(u.gender) + '</td>' +
-              '<td><span class="s-active ' + (u.is_active ? 'on' : 'off') + '">' + (u.is_active ? 'Aktif' : 'Nonaktif') + '</span></td>' +
+              '<td><span class="s-active ' + (u.is_active ? 'on' : 'off') + '">' + (u.is_active ? 'Aktif' : 'Nonaktif') + '</span> ' + presenceBadge(u) + '</td>' +
               '<td>' + escapeHtml(u.role || '-') + '</td>' +
               '<td class="s-bio">' + (bioText(u) ? escapeHtml(bioText(u)) : '<span class="s-bio-empty">Tidak ada bio.</span>') + '</td>' +
               '</tr>'
@@ -2974,6 +3017,7 @@
         schedulePageScrollLocks();
       }
       window.setInterval(pollStudents, STUDENTS_POLL_MS);
+      startPresence();
       if (studentsModeBtn && !studentsModeBtn.dataset.bound) {
         studentsModeBtn.dataset.bound = '1';
         studentsModeBtn.addEventListener('click', function () {
